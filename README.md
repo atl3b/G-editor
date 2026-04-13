@@ -20,11 +20,54 @@
 | 文件操作 | 新建、打开、保存、另存为 |
 | 多标签页 | 多文档管理、标签切换 |
 | 编辑能力 | 撤销/重做（命令模式 + UndoRedoManager）、行级文本缓冲区 |
-| 查找与替换 | 大小写敏感、全字匹配、Replace All（原子复合命令，一次 Undo 恢复全部） |
-| 编码处理 | BOM 优先检测 → 启发式 → 回退默认；支持 UTF-8/UTF-16 等 |
+| 查找与替换 | 大小写敏感、全字匹配、正则表达式、Replace All（原子复合命令，一次 Undo 恢复全部） |
+| 编码处理 | BOM 优先检测 → 启发式 → 回退默认；支持 UTF-8/UTF-16/GB2312/GBK |
 | 换行符 | 打开时自动检测（CRLF / LF / CR），保存时保留原风格，可手动切换 |
 | 语法高亮 | C#、JSON、XML、Plain Text（规则驱动 + 注册中心，可扩展） |
-| 状态栏 | 光标位置、编码、换行符类型 |
+| 状态栏 | 光标位置、编码、换行符类型、语言模式 |
+
+## 快速开始
+
+### 系统要求
+
+- Windows 10 或更高版本
+- .NET 8 SDK
+
+### 构建项目
+
+```bash
+# 克隆仓库
+git clone https://github.com/atl3b/G-editor.git
+cd G-editor
+
+# 还原依赖
+dotnet restore
+
+# 构建解决方案
+dotnet build
+
+# 运行测试
+dotnet test
+
+# 运行应用程序
+dotnet run --project src/GEditor.App/GEditor.App.csproj
+```
+
+### 键盘快捷键
+
+| 功能 | 快捷键 |
+|------|--------|
+| 新建 | Ctrl+N |
+| 打开 | Ctrl+O |
+| 保存 | Ctrl+S |
+| 另存为 | Ctrl+Shift+S |
+| 关闭标签 | Ctrl+W |
+| 撤销 | Ctrl+Z |
+| 重做 | Ctrl+Y |
+| 查找 | Ctrl+F |
+| 替换 | Ctrl+H |
+| 查找下一个 | F3 |
+| 查找上一个 | Shift+F3 |
 
 ## 技术栈
 
@@ -34,7 +77,7 @@
 | UI 框架 | WPF |
 | 架构模式 | MVVM + 分层架构 |
 | 依赖注入 | Microsoft.Extensions.DependencyInjection |
-| 单元测试 | xUnit + Moq |
+| 单元测试 | xUnit |
 | 构建工具 | .NET CLI |
 
 ## 项目结构
@@ -67,7 +110,18 @@ G-editor/
 
 - 打开文件时自动检测主导换行风格（CRLF / LF / CR）
 - 编辑过程中内部统一处理，不丢失换行符信息
-- 保存时默认保留原文件换行风格，可通过状态栏手动切换
+- 保存时默认保留原文件换行风格，可通过菜单手动切换
+
+## 架构设计
+
+### 核心模块
+
+- **Document** - 文档聚合根，管理文档元数据（路径、编码、换行符）和内容缓冲区
+- **EditorBuffer** - 行级文本缓冲区，负责文本存储和编辑操作
+- **UndoRedoManager** - 撤销/重做管理器，支持命令模式
+- **TextFileService** - 文件读写服务，处理编码检测和换行符转换
+- **SearchService** - 搜索服务，支持正则表达式和 Replace All
+- **SyntaxHighlighterRegistry** - 语法高亮注册中心，管理多种语言的高亮器
 
 ## 开发方式
 
@@ -90,4 +144,4 @@ G-editor/
 
 ## 项目状态
 
-**早期开发 / MVP 阶段** — 核心架构和骨架代码正在搭建中，功能尚不完整。
+**MVP 阶段** — 核心功能已完成，包括文件操作、编辑能力、查找替换、编码处理、语法高亮。测试覆盖率达到目标。

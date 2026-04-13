@@ -1,5 +1,7 @@
 using GEditor.Core.Buffer;
 using GEditor.Core.Documents;
+using GEditor.Syntax;
+using System.IO;
 
 namespace GEditor.App.ViewModels;
 
@@ -13,11 +15,24 @@ public sealed class EditorViewModel : ViewModelBase
     private int _caretColumn = 1;
     private string _selectedText = string.Empty;
     private bool _hasSelection;
+    private string _currentLanguage = "Plain Text";
+    private ISyntaxHighlighter? _currentHighlighter;
 
-    public EditorViewModel(Document document)
+    public EditorViewModel(Document document, ISyntaxHighlighterRegistry? registry = null)
     {
         _document = document;
         _document.Changed += OnDocumentChanged;
+
+        // 根据文件扩展名自动检测语言
+        if (registry != null && !string.IsNullOrEmpty(document.FilePath))
+        {
+            var extension = Path.GetExtension(document.FilePath);
+            _currentHighlighter = registry.GetHighlighterByExtension(extension);
+            if (_currentHighlighter != null)
+            {
+                _currentLanguage = _currentHighlighter.LanguageName;
+            }
+        }
     }
 
     public Document Document => _document;
@@ -66,9 +81,58 @@ public sealed class EditorViewModel : ViewModelBase
 
     public string LineEndingDisplay => _document.LineEndingInfo.DetectedLineEnding.ToString();
 
-    public string LanguageDisplay => "Plain Text";
+    public string LanguageDisplay
+    {
+        get => _currentLanguage;
+        set
+        {
+            if (SetProperty(ref _currentLanguage, value))
+            {
+                OnPropertyChanged(nameof(HasHighlighting));
+            }
+        }
+    }
+
+    public bool HasHighlighting => _currentHighlighter != null && _currentHighlighter.LanguageName != "Plain Text";
 
     public bool IsDirty => _document.IsDirty;
+
+    /// <summary>
+    /// 设置当前语言高亮器
+    /// </summary>
+    public void SetLanguage(string languageName, ISyntaxHighlighterRegistry registry)
+    {
+        var highlighter = registry.GetHighlighterByLanguage(languageName);
+        if (highlighter != null)
+        {
+            _currentHighlighter = highlighter;
+            _currentLanguage = languageName;
+            OnPropertyChanged(nameof(LanguageDisplay));
+            OnPropertyChanged(nameof(HasHighlighting));
+        }
+    }
+
+    /// <summary>
+    /// 获取指定行的语法 Token（用于高亮渲染）
+    /// </summary>
+    public IReadOnlyList<SyntaxToken>? GetHighlightedTokens(int lineNumber)
+    {
+        if (_currentHighlighter == null || lineNumber < 0 || lineNumber >= LineCount)
+            return null;
+
+        return _currentHighlighter.HighlightLine(Lines[lineNumber], lineNumber);
+    }
+
+    /// <summary>
+    /// 获取整个文档的高亮结果
+    /// </summary>
+    public SyntaxHighlightResult? GetHighlightedDocument()
+    {
+        if (_currentHighlighter == null)
+            return null;
+
+        return _currentHighlighter.HighlightDocument(Lines);
+    }
 
     public void UpdateCaretPosition(int line, int column)
     {

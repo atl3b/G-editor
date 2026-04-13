@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:GEditor.App.ViewModels"
+        xmlns:views="clr-namespace:GEditor.App.Views"
         mc:Ignorable="d"
         Title="{Binding WindowTitle}"
         Width="1024"
@@ -22,6 +23,8 @@
         <KeyBinding Key="Y" Modifiers="Ctrl" Command="{Binding RedoCommand}"/>
         <KeyBinding Key="F" Modifiers="Ctrl" Command="{Binding FindCommand}"/>
         <KeyBinding Key="H" Modifiers="Ctrl" Command="{Binding ReplaceCommand}"/>
+        <KeyBinding Key="F3" Command="{Binding FindNextCommand}"/>
+        <KeyBinding Key="F3" Modifiers="Shift" Command="{Binding FindPreviousCommand}"/>
     </Window.InputBindings>
 
     <DockPanel>
@@ -70,48 +73,48 @@
             <!-- 编码菜单 -->
             <MenuItem Header="编码(_E)">
                 <MenuItem Header="以编码重新打开(_R)">
-                    <MenuItem Header="UTF-8"/>
-                    <MenuItem Header="UTF-8 (BOM)"/>
-                    <MenuItem Header="UTF-16 LE"/>
-                    <MenuItem Header="UTF-16 BE"/>
-                    <MenuItem Header="GB2312"/>
-                    <MenuItem Header="GBK"/>
-                    <MenuItem Header="ANSI"/>
+                    <MenuItem Header="UTF-8" Command="{Binding ReopenWithEncodingCommand}" CommandParameter="UTF-8"/>
+                    <MenuItem Header="UTF-8 (BOM)" Command="{Binding ReopenWithEncodingCommand}" CommandParameter="UTF-8 (BOM)"/>
+                    <MenuItem Header="UTF-16 LE" Command="{Binding ReopenWithEncodingCommand}" CommandParameter="UTF-16 LE"/>
+                    <MenuItem Header="UTF-16 BE" Command="{Binding ReopenWithEncodingCommand}" CommandParameter="UTF-16 BE"/>
+                    <MenuItem Header="GB2312" Command="{Binding ReopenWithEncodingCommand}" CommandParameter="GB2312"/>
+                    <MenuItem Header="GBK" Command="{Binding ReopenWithEncodingCommand}" CommandParameter="GBK"/>
+                    <MenuItem Header="ANSI" Command="{Binding ReopenWithEncodingCommand}" CommandParameter="ANSI"/>
                 </MenuItem>
                 <MenuItem Header="保存为编码(_S)">
-                    <MenuItem Header="UTF-8"/>
-                    <MenuItem Header="UTF-8 (BOM)"/>
-                    <MenuItem Header="UTF-16 LE"/>
-                    <MenuItem Header="UTF-16 BE"/>
-                    <MenuItem Header="GB2312"/>
-                    <MenuItem Header="GBK"/>
+                    <MenuItem Header="UTF-8" Command="{Binding SaveWithEncodingCommand}" CommandParameter="UTF-8"/>
+                    <MenuItem Header="UTF-8 (BOM)" Command="{Binding SaveWithEncodingCommand}" CommandParameter="UTF-8 (BOM)"/>
+                    <MenuItem Header="UTF-16 LE" Command="{Binding SaveWithEncodingCommand}" CommandParameter="UTF-16 LE"/>
+                    <MenuItem Header="UTF-16 BE" Command="{Binding SaveWithEncodingCommand}" CommandParameter="UTF-16 BE"/>
+                    <MenuItem Header="GB2312" Command="{Binding SaveWithEncodingCommand}" CommandParameter="GB2312"/>
+                    <MenuItem Header="GBK" Command="{Binding SaveWithEncodingCommand}" CommandParameter="GBK"/>
                 </MenuItem>
                 <Separator/>
                 <MenuItem Header="更改换行符(_L)">
-                    <MenuItem Header="Windows (CRLF)"/>
-                    <MenuItem Header="Unix (LF)"/>
-                    <MenuItem Header="Mac (CR)"/>
+                    <MenuItem Header="Windows (CRLF)" Command="{Binding ChangeLineEndingCommand}" CommandParameter="Windows (CRLF)"/>
+                    <MenuItem Header="Unix (LF)" Command="{Binding ChangeLineEndingCommand}" CommandParameter="Unix (LF)"/>
+                    <MenuItem Header="Mac (CR)" Command="{Binding ChangeLineEndingCommand}" CommandParameter="Mac (CR)"/>
                 </MenuItem>
             </MenuItem>
 
             <!-- 语言菜单 -->
             <MenuItem Header="语言(_L)">
-                <MenuItem Header="普通文本"/>
+                <MenuItem Header="普通文本" Command="{Binding ChangeLanguageCommand}" CommandParameter="Plain Text"/>
                 <Separator/>
                 <MenuItem Header="编程语言">
-                    <MenuItem Header="C/C++"/>
-                    <MenuItem Header="C#"/>
-                    <MenuItem Header="Python"/>
-                    <MenuItem Header="Java"/>
-                    <MenuItem Header="JavaScript"/>
+                    <MenuItem Header="C/C++" Command="{Binding ChangeLanguageCommand}" CommandParameter="C/C++"/>
+                    <MenuItem Header="C#" Command="{Binding ChangeLanguageCommand}" CommandParameter="C#"/>
+                    <MenuItem Header="Python" Command="{Binding ChangeLanguageCommand}" CommandParameter="Python"/>
+                    <MenuItem Header="Java" Command="{Binding ChangeLanguageCommand}" CommandParameter="Java"/>
+                    <MenuItem Header="JavaScript" Command="{Binding ChangeLanguageCommand}" CommandParameter="JavaScript"/>
                 </MenuItem>
                 <MenuItem Header="标记语言">
-                    <MenuItem Header="HTML"/>
-                    <MenuItem Header="XML"/>
+                    <MenuItem Header="HTML" Command="{Binding ChangeLanguageCommand}" CommandParameter="HTML"/>
+                    <MenuItem Header="XML" Command="{Binding ChangeLanguageCommand}" CommandParameter="XML"/>
                 </MenuItem>
                 <MenuItem Header="数据格式">
-                    <MenuItem Header="JSON"/>
-                    <MenuItem Header="YAML"/>
+                    <MenuItem Header="JSON" Command="{Binding ChangeLanguageCommand}" CommandParameter="JSON"/>
+                    <MenuItem Header="YAML" Command="{Binding ChangeLanguageCommand}" CommandParameter="YAML"/>
                 </MenuItem>
             </MenuItem>
 
@@ -166,6 +169,7 @@
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
@@ -187,8 +191,12 @@
                 </TabControl.ContentTemplate>
             </TabControl>
 
+            <!-- 搜索面板 -->
+            <views:SearchPanelView Grid.Row="1"
+                                  DataContext="{Binding SearchPanel}"/>
+
             <!-- 编辑区 -->
-            <TextBox Grid.Row="1"
+            <TextBox Grid.Row="2"
                      x:Name="EditorTextBox"
                      AcceptsReturn="True"
                      AcceptsTab="True"

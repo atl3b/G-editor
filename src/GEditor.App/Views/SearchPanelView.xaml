@@ -1,0 +1,73 @@
+<UserControl x:Class="GEditor.App.Views.SearchPanelView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="80" d:DesignWidth="500"
+             Visibility="{Binding IsVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+
+    <Border Background="#F5F5F5" BorderBrush="#CCCCCC" BorderThickness="0,0,0,1" Padding="8">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- 第一行：查找 -->
+            <Grid Grid.Row="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0" Text="查找:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                <TextBox Grid.Column="1" x:Name="SearchTextBox" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                         VerticalAlignment="Center" Margin="0,0,5,0" Padding="4,2"/>
+
+                <Button Grid.Column="2" Content="上一个" Command="{Binding FindPreviousCommand}"
+                        Padding="8,4" Margin="0,0,2,0"/>
+                <Button Grid.Column="3" Content="下一个" Command="{Binding FindNextCommand}"
+                        Padding="8,4" Margin="0,0,5,0"/>
+
+                <TextBlock Grid.Column="4" Text="{Binding MatchInfo}" VerticalAlignment="Center" Margin="0,0,5,0"/>
+
+                <CheckBox Grid.Column="5" Content="区分大小写" IsChecked="{Binding MatchCase}"
+                          VerticalAlignment="Center" Margin="0,0,5,0"/>
+                <CheckBox Grid.Column="6" Content="全字匹配" IsChecked="{Binding WholeWord}"
+                          VerticalAlignment="Center" Margin="0,0,5,0"/>
+                <CheckBox Grid.Column="7" Content="正则" IsChecked="{Binding UseRegex}"
+                          VerticalAlignment="Center"/>
+
+                <Button Grid.Column="7" Content="X" Command="{Binding CloseCommand}"
+                        HorizontalAlignment="Right" Padding="4,2" Margin="5,0,0,0"/>
+            </Grid>
+
+            <!-- 第二行：替换（可选） -->
+            <Grid Grid.Row="1" Margin="0,5,0,0"
+                  Visibility="{Binding ShowReplacePanel, Converter={StaticResource BoolToVisibilityConverter}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0" Text="替换为:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                <TextBox Grid.Column="1" Text="{Binding ReplaceText, UpdateSourceTrigger=PropertyChanged}"
+                         VerticalAlignment="Center" Margin="0,0,5,0" Padding="4,2"/>
+
+                <Button Grid.Column="2" Content="替换" Command="{Binding ReplaceCommand}"
+                        Padding="8,4" Margin="0,0,2,0"/>
+                <Button Grid.Column="3" Content="全部替换" Command="{Binding ReplaceAllCommand}"
+                        Padding="8,4"/>
+            </Grid>
+        </Grid>
+    </Border>
+</UserControl>
