@@ -6,7 +6,12 @@ namespace GEditor.App.Controls;
 
 /// <summary>
 /// 行号面板控件 - 在编辑区左侧显示行号
-/// Geek 风格：暗色背景 + 柔和青灰色数字 + 选中行高亮 + 微妙分隔线
+/// Premium Edition v2.0:
+///   - 深色背景 + 柔和青灰色数字
+///   - 选中行高亮 (Cyan 微光)
+///   - 渐变分隔线
+///   - 奇偶行交替背景（极淡）
+///   - 可视区域优化渲染
 /// </summary>
 public class LineNumberPanel : FrameworkElement
 {
@@ -23,7 +28,7 @@ public class LineNumberPanel : FrameworkElement
             new FrameworkPropertyMetadata(1, FrameworkPropertyMetadataOptions.AffectsRender, OnLineCountChanged));
 
     /// <summary>
-    /// 垂直偏移（跟随 ScrollViewer 滚动）
+    /// 垂直偏移（跟随 ScrollViewer 滚动同步）
     /// </summary>
     public static readonly DependencyProperty VerticalOffsetProperty =
         DependencyProperty.Register(
@@ -43,7 +48,7 @@ public class LineNumberPanel : FrameworkElement
             new FrameworkPropertyMetadata(20.0, FrameworkPropertyMetadataOptions.AffectsRender));
 
     /// <summary>
-    /// 当前活动行（光标所在行，用于高亮显示）
+    /// 当前活动行（光标所在行，0-based，用于高亮显示）
     /// </summary>
     public static readonly DependencyProperty CurrentLineProperty =
         DependencyProperty.Register(
@@ -101,29 +106,31 @@ public class LineNumberPanel : FrameworkElement
 
     #endregion
 
-    #region 私有字段 - Geek 配色方案
+    #region 私有字段 - Premium Dark 配色方案
 
-    // 行号默认颜色：冷灰蓝色，类似 Sublime/VS Code 行号
-    private static readonly Color LineNumDefaultColor = Color.FromRgb(74, 85, 104);      // #4A5568
-    // 选中行号颜色：更亮的青灰色
-    private static readonly Color LineNumActiveColor = Color.FromRgb(113, 128, 150);       // #718096
-    // 背景色：与编辑器同系但略深
-    private static readonly Color BgColor = Color.FromRgb(20, 25, 32);                     // #141920
-    // 分隔线颜色：微妙深色
-    private static readonly Color SeparatorColor = Color.FromRgb(40, 48, 58);              // #28303A
-    // 当前行高亮背景色：微妙的暖色调
-    private static readonly Color ActiveLineBgColor = Color.FromArgb(30, 0, 212, 170);     // 半透明 Cyan
-    // 奇偶行交替色（极淡）
-    private static readonly Color AltLineBgColor = Color.FromArgb(8, 255, 255, 255);
+    // ── 配色常量（与 App.xaml 设计令牌系统一致）──
+    
+    // 行号默认颜色：冷灰蓝色，类似 VS Code 行号风格
+    private static readonly Color LineNumDefaultColor = Color.FromRgb(68, 78, 95);       // #444E5F
+    // 选中行号颜色：更亮的蓝灰色，带微妙强调感
+    private static readonly Color LineNumActiveColor = Color.FromRgb(110, 125, 145);     // #6E7D91
+    // 背景色：比编辑区略深，创造层次感
+    private static readonly Color BgColor = Color.FromRgb(13, 17, 23);                   // #0D1117
+    // 分隔线颜色：微妙的深色渐变基础色
+    private static readonly Color SeparatorColor = Color.FromRgb(35, 43, 55);           // #232B37
+    // 当前行高亮背景色：半透明 Cyan（与主色调统一）
+    private static readonly Color ActiveLineBgColor = Color.FromArgb(28, 0, 212, 170);   // #00D4AA @ ~11%
+    // 奇数行交替背景（极淡，增加视觉节奏）
+    private static readonly Color AltLineBgColor = Color.FromArgb(6, 255, 255, 255);
 
+    // ── 画刷实例 ──
     private static readonly Brush _lineNumBrush = new SolidColorBrush(LineNumDefaultColor);
     private static readonly Brush _lineNumActiveBrush = new SolidColorBrush(LineNumActiveColor);
     private static readonly Brush _backgroundBrush = new SolidColorBrush(BgColor);
-    private static readonly Brush _separatorPenBrush = new SolidColorBrush(SeparatorColor);
     private static readonly Brush _activeLineBgBrush = new SolidColorBrush(ActiveLineBgColor);
     private static readonly Brush _altLineBgBrush = new SolidColorBrush(AltLineBgColor);
 
-    // 字体：等宽 Geek 风格
+    // 字体：等宽 Geek 风格（Consolas）
     private static readonly Typeface _typeface = new Typeface(
         new FontFamily("Consolas"),
         FontStyles.Normal,
@@ -165,16 +172,19 @@ public class LineNumberPanel : FrameworkElement
 
     #region 方法
 
+    /// <summary>
+    /// 根据总行数计算面板宽度（自适应位数）
+    /// </summary>
     private void UpdateWidth()
     {
         int digits = Math.Max(1, (int)Math.Floor(Math.Log10(Math.Max(1, LineCount))) + 1);
-        _cachedWidth = digits * 9.0 + 22.0; // 每位约9px + padding (左右各11)
+        _cachedWidth = digits * 9.5 + 24.0; // 每位约9.5px + padding (左右各12)
         Width = _cachedWidth;
     }
 
     #endregion
 
-    #region 渲染
+    #region 渲染核心 - OnRender
 
     protected override void OnRender(DrawingContext drawingContext)
     {
@@ -183,11 +193,14 @@ public class LineNumberPanel : FrameworkElement
         if (!IsLineNumberVisible || RenderSize.Width <= 0 || RenderSize.Height <= 0)
             return;
 
-        // ── 绘制背景 ──
-        drawingContext.DrawRectangle(_backgroundBrush, null, new Rect(0, 0, RenderSize.Width, RenderSize.Height));
+        // ═══ 绘制背景 ═══
+        drawingContext.DrawRectangle(_backgroundBrush, null, 
+            new Rect(0, 0, RenderSize.Width, RenderSize.Height));
 
-        // ── 绘制右侧分隔线（微妙渐变效果）──
+        // ═══ 绘制右侧分隔线（渐变淡入淡出效果）═══
         double separatorX = RenderSize.Width - 1.5;
+        
+        // 使用 LinearGradientBrush 创建分隔线的渐变效果（两端淡出）
         var separatorGradientPen = new Pen(
             new LinearGradientBrush
             {
@@ -195,63 +208,75 @@ public class LineNumberPanel : FrameworkElement
                 EndPoint = new Point(separatorX, RenderSize.Height),
                 GradientStops = new GradientStopCollection
                 {
-                    new(Color.FromArgb(0x00, 0x28, 0x30, 0x3A), 0.0),
-                    new(SeparatorColor, 0.15),
-                    new(SeparatorColor, 0.85),
-                    new(Color.FromArgb(0x00, 0x28, 0x30, 0x3A), 1.0),
+                    new(Color.FromArgb(0x00, 0x23, 0x2B, 0x37), 0.0),      // 顶部透明
+                    new(SeparatorColor, 0.12),                               // 12% 处出现
+                    new(SeparatorColor, 0.88),                               // 中间保持
+                    new(Color.FromArgb(0x00, 0x23, 0x2B, 0x37), 1.0),      // 底部透明
                 }
             }, 1);
+        
         drawingContext.DrawLine(separatorGradientPen,
             new Point(separatorX, 0),
             new Point(separatorX, RenderSize.Height));
-        separatorGradientPen.Brush = null; // 释放
+        
+        // 释放画笔引用的渐变画刷
+        separatorGradientPen.Brush = null;
 
-        // ── 计算可见区域行号范围 ──
+        // ═══ 计算可见区域行号范围（性能优化：只渲染可见行）═══
         int firstVisibleLine = Math.Max(0, (int)(VerticalOffset / LineHeight));
-        int lastVisibleLine = Math.Min(LineCount - 1, firstVisibleLine + (int)(RenderSize.Height / LineHeight) + 2);
+        int lastVisibleLine = Math.Min(LineCount - 1, 
+            firstVisibleLine + (int)(RenderSize.Height / LineHeight) + 2);
         double dpiScale = VisualTreeHelper.GetDpi(this).PixelsPerDip;
 
-        // ── 逐行绘制 ──
+        // ═══ 逐行渲染行号 ═══
         for (int i = firstVisibleLine; i <= lastVisibleLine; i++)
         {
             double y = i * LineHeight - VerticalOffset;
 
-            // 视口裁剪
-            if (y + LineHeight < 0 || y > RenderSize.Height)
+            // 视口裁剪：跳过完全不可见的行
+            if (y + LineHeight < -10 || y > RenderSize.Height + 10)
                 continue;
 
             bool isActiveLine = (i == CurrentLine);
 
-            // 偶数行交替背景（极淡）
+            // 偶数行交替背景（极淡的白色条纹）
             if (!isActiveLine && i % 2 == 1)
             {
                 drawingContext.DrawRectangle(_altLineBgBrush, null,
                     new Rect(0, y, RenderSize.Width, LineHeight));
             }
 
-            // 当前行高亮背景
+            // 当前行高亮背景 - Cyan 微光效果
             if (isActiveLine)
             {
                 drawingContext.DrawRectangle(_activeLineBgBrush, null,
                     new Rect(0, y, RenderSize.Width, LineHeight));
+                
+                // 当前行的左侧竖条指示器（额外的视觉提示）
+                var activeIndicatorPen = new Pen(
+                    new SolidColorBrush(Color.FromArgb(180, 0, 212, 170)), 2.0);
+                drawingContext.DrawLine(activeIndicatorPen,
+                    new Point(0, y),
+                    new Point(0, y + LineHeight));
             }
 
-            // 绘制行号文字
+            // ═══ 绘制行号文字 ═══
             string lineNumber = (i + 1).ToString();
+            
             var formattedText = new FormattedText(
                 lineNumber,
                 System.Globalization.CultureInfo.CurrentCulture,
                 FlowDirection.LeftToRight,
                 _typeface,
-                12,   // 稍小的字号，Geek 精致感
+                11.5, // 稍小字号，Geek 精致感
                 isActiveLine ? _lineNumActiveBrush : _lineNumBrush,
                 dpiScale);
 
-            // 右对齐绘制，留出适当边距
-            double x = RenderSize.Width - 14 - formattedText.Width;
+            // 右对齐绘制，留出适当右边距
+            double x = RenderSize.Width - 15 - formattedText.Width;
             double textY = y + (LineHeight - formattedText.Height) / 2.0;
 
-            // 当前行使用稍粗字重（通过微调位置模拟视觉权重差异）
+            // 渲染行号文字
             drawingContext.DrawText(formattedText, new Point(x, textY));
         }
     }

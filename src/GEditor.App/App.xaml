@@ -10,63 +10,86 @@
         <converters:IsDirtyToColorConverter x:Key="IsDirtyToColorConverter"/>
 
         <!--
-        ╔══════════════════════════════════════════════════════════╗
-        ║           G-editor  Geek Design Token System             ║
-        ║     Inspired by VS Code / Sublime / Terminal Aesthetic    ║
-        ╚══════════════════════════════════════════════════════════╝
+        ╔══════════════════════════════════════════════════════════════╗
+        ║       G-editor  Design Token System  v2.0  -  Premium Dark    ║
+        ║   Inspired by VS Code Insiders / Notepad++ Dark / Sublime     ║
+        ║   Cyber-Tech Aesthetic · Depth Layers · Glow Accents           ║
+        ╚══════════════════════════════════════════════════════════════╝
         -->
 
         <!-- ======================== 色彩令牌 ======================== -->
         
-        <!-- 主色调 - Cyber Cyan (Geek 核心色) -->
+        <!-- 主色调 - Electric Cyan (核心品牌色) -->
         <Color x:Key="AccentPrimary">#00D4AA</Color>
         <Color x:Key="AccentPrimaryDark">#00A88A</Color>
         <Color x:Key="AccentPrimaryLight">#33E0BC</Color>
         <Color x:Key="AccentPrimaryAlpha50">#8000D4AA</Color>
         <Color x:Key="AccentPrimaryAlpha30">#4D00D4AA</Color>
+        <Color x:Key="AccentPrimaryAlpha15">#2600D4AA</Color>
+        <Color x:Key="AccentPrimaryGlow">#00FFCC</Color>
 
-        <!-- 次要强调色 - Electric Blue -->
+        <!-- 次要强调色 - Sapphire Blue -->
         <Color x:Key="AccentBlue">#569CD6</Color>
         <Color x:Key="AccentBlueDark">#3A8BC7</Color>
         <Color x:Key="AccentBlueAlpha">#80569CD6</Color>
 
-        <!-- 功能色 - Warning Orange / Error Red / Success Green / Info Purple -->
+        <!-- 功能色系 - 语义化颜色 -->
         <Color x:Key="FuncWarning">#FF922B</Color>
+        <Color x:Key="FuncWarningLight">#FFB340</Color>
         <Color x:Key="FuncError">#FF6B6B</Color>
+        <Color x:Key="FuncErrorDark">#E05555</Color>
         <Color x:Key="FuncSuccess">#2ECC71</Color>
+        <Color x:Key="FuncSuccessLight">#4ADE80</Color>
         <Color x:Key="FuncInfo">#9B59B6</Color>
+        <Color x:Key="FuncInfoLight">#B57EDC</Color>
 
-        <!-- 背景色系 - 深邃层次 -->
-        <Color x:Key="BgDarkest">#0D1117</Color>    <!-- 最深层（编辑器底） -->
-        <Color x:Key="BgDarker">#141A21</Color>      <!-- 编辑区背景 -->
-        <Color x:Key="BgDark">#1A1F26</Color>       <!-- 侧边/面板背景 -->
-        <Color x:Key="BgMedium">#222830</Color>      <!-- 标签栏/工具栏 -->
-        <Color x:Key="BgLight">#2D333B</Color>       <!-- 悬停/激活态 -->
-        <Color x:Key="BgLighter">#373E47</Color>     <!-- 边框/分隔线 -->
-        <Color x:Key="BgHover">#2A3140</Color>       <!-- 悬停过渡 -->
+        <!-- 背景色系 - 深邃层次（从最深到最浅，6级层次） -->
+        <Color x:Key="BgDarkest">#0A0E14</Color>      <!-- 最深层（窗口底） -->
+        <Color x:Key="BgDarker">#0F1419</Color>       <!-- 编辑区背景 -->
+        <Color x:Key="BgDark">#151B23</Color>         <!-- 侧边/面板背景 -->
+        <Color x:Key="BgMedium">#1C242E</Color>       <!-- 标签栏/工具栏 -->
+        <Color x:Key="BgLight">#252D38</Color>        <!-- 悬停/激活态 -->
+        <Color x:Key="BgLighter">#2F3A47</Color>      <!-- 边框/分隔线高亮 -->
+        <Color x:Key="BgHover">#1E2733</Color>        <!-- 悬停过渡态 -->
+        <Color x:Key="BgActive">#1A2332</Color>       <!-- 激活态背景 -->
+        <Color x:Key="BgInput">#111820</Color>        <!-- 输入框背景 -->
 
         <!-- 文字色系 -->
-        <Color x:Key="TextPrimary">#E6EDF3</Color>   <!-- 主要文字 -->
-        <Color x:Key="TextSecondary">#8B949E</Color> <!-- 次要文字 -->
-        <Color x:Key="TextMuted">#545D68</Color>     <!-- 弱化文字 -->
-        <Color x:Key="TextAccent">#00D4AA</Color>    <!-- 强调文字 -->
-        <Color x:Key="TextLink">#58A6FF</Color>      <!-- 链接/可交互 -->
+        <Color x:Key="TextPrimary">#E6EDF3</Color>     <!-- 主要文字 -->
+        <Color x:Key="TextSecondary">#9CA3AF</Color>   <!-- 次要文字 -->
+        <Color x:Key="TextMuted">#5C6370</Color>       <!-- 弱化文字 -->
+        <Color x:Key="TextAccent">#00D4AA</Color>      <!-- 强调文字 -->
+        <Color x:Key="TextLink">#58A6FF</Color>        <!-- 链接/可交互 -->
 
         <!-- 行号专用色 -->
         <Color x:Key="LineNumDefault">#4A5568</Color>
         <Color x:Key="LineNumActive">#718096</Color>
+        <Color x:Key="LineNumHover">#8B9CB5</Color>
 
         <!-- 边框/分割线 -->
-        <Color x:Key="BorderSubtle">#30363D</Color>
-        <Color x:Key="BorderMedium">#3D444D</Color>
+        <Color x:Key="BorderSubtle">#252D38</Color>
+        <Color x:Key="BorderMedium">#333D4A</Color>
+        <Color x:Key="BorderBright">#3E4C5E</Color>
+
+        <!-- 内阴影 / 发光效果专用 -->
+        <Color x:Key="ShadowDark">#000000</Color>
+        <Color x:Key="GlowSubtle">#00D4AA20</Color>
 
         <!-- ==================== SolidBrush 令牌 ==================== -->
+        
+        <!-- 强调色画刷 -->
         <SolidColorBrush x:Key="BrushAccentPrimary" Color="{StaticResource AccentPrimary}"/>
         <SolidColorBrush x:Key="BrushAccentPrimaryDark" Color="{StaticResource AccentPrimaryDark}"/>
+        <SolidColorBrush x:Key="BrushAccentPrimaryLight" Color="{StaticResource AccentPrimaryLight}"/>
         <SolidColorBrush x:Key="BrushAccentBlue" Color="{StaticResource AccentBlue}"/>
         <SolidColorBrush x:Key="BrushAccentBlueAlpha" Color="{StaticResource AccentBlueAlpha}"/>
+        
+        <!-- 功能色画刷 -->
         <SolidColorBrush x:Key="BrushFuncWarning" Color="{StaticResource FuncWarning}"/>
         <SolidColorBrush x:Key="BrushFuncError" Color="{StaticResource FuncError}"/>
+        <SolidColorBrush x:Key="BrushFuncSuccess" Color="{StaticResource FuncSuccess}"/>
+
+        <!-- 背景画刷 -->
         <SolidColorBrush x:Key="BrushBgDarkest" Color="{StaticResource BgDarkest}"/>
         <SolidColorBrush x:Key="BrushBgDarker" Color="{StaticResource BgDarker}"/>
         <SolidColorBrush x:Key="BrushBgDark" Color="{StaticResource BgDark}"/>
@@ -74,11 +97,59 @@
         <SolidColorBrush x:Key="BrushBgLight" Color="{StaticResource BgLight}"/>
         <SolidColorBrush x:Key="BrushBgLighter" Color="{StaticResource BgLighter}"/>
         <SolidColorBrush x:Key="BrushBgHover" Color="{StaticResource BgHover}"/>
+        <SolidColorBrush x:Key="BrushBgActive" Color="{StaticResource BgActive}"/>
+        <SolidColorBrush x:Key="BrushBgInput" Color="{StaticResource BgInput}"/>
+
+        <!-- 文字画刷 -->
         <SolidColorBrush x:Key="BrushTextPrimary" Color="{StaticResource TextPrimary}"/>
         <SolidColorBrush x:Key="BrushTextSecondary" Color="{StaticResource TextSecondary}"/>
         <SolidColorBrush x:Key="BrushTextMuted" Color="{StaticResource TextMuted}"/>
         <SolidColorBrush x:Key="BrushTextAccent" Color="{StaticResource TextAccent}"/>
+        <SolidColorBrush x:Key="BrushTextLink" Color="{StaticResource TextLink}"/>
+
+        <!-- 边框画刷 -->
         <SolidColorBrush x:Key="BrushBorderSubtle" Color="{StaticResource BorderSubtle}"/>
+        <SolidColorBrush x:Key="BrushBorderMedium" Color="{StaticResource BorderMedium}"/>
+        <SolidColorBrush x:Key="BrushBorderBright" Color="{StaticResource BorderBright}"/>
+
+        <!-- ==================== 渐变画刷 ==================== -->
+        
+        <!-- 标签栏活跃渐变（微妙底光） -->
+        <LinearGradientBrush x:Key="BrushTabActiveGradient" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#1A2332" Offset="0"/>
+            <GradientStop Color="#151B23" Offset="1"/>
+        </LinearGradientBrush>
+
+        <!-- 编辑区内发光顶边渐变 -->
+        <LinearGradientBrush x:Key="BrushEditorTopGlow" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#00D4AA15" Offset="0"/>
+            <GradientStop Color="#00000000" Offset="1"/>
+        </LinearGradientBrush>
+
+        <!-- 工具栏底部分隔渐变 -->
+        <LinearGradientBrush x:Key="BrushToolbarSeparator" StartPoint="0,0" EndPoint="1,0">
+            <GradientStop Color="#00000000" Offset="0"/>
+            <GradientStop Color="#252D38" Offset="0.5"/>
+            <GradientStop Color="#00000000" Offset="1"/>
+        </LinearGradientBrush>
+
+        <!-- 状态栏顶部分隔渐变 -->
+        <LinearGradientBrush x:Key="BrushStatusBarGlow" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#00D4AA10" Offset="0"/>
+            <GradientStop Color="#00000000" Offset="1"/>
+        </LinearGradientBrush>
+
+        <!-- 按钮悬停渐变 -->
+        <LinearGradientBrush x:Key="BrushBtnHoverGradient" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#252D38" Offset="0"/>
+            <GradientStop Color="#1E2733" Offset="1"/>
+        </LinearGradientBrush>
+
+        <!-- 按钮按下渐变 -->
+        <LinearGradientBrush x:Key="BrushBtnPressedGradient" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#1A2332" Offset="0"/>
+            <GradientStop Color="#151B23" Offset="1"/>
+        </LinearGradientBrush>
 
         <!-- ==================== 字体令牌 ==================== -->
         <FontFamily x:Key="MonoFontFamily">Consolas</FontFamily>
@@ -92,12 +163,12 @@
 
         <!-- ======================== 全局控件样式 ======================== -->
 
-        <!-- ===== MenuItem 样式 - 极简暗色菜单 ===== -->
+        <!-- ===== MenuItem 样式 - Premium Dark Menu ===== -->
         <Style TargetType="MenuItem">
             <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}"/>
             <Setter Property="FontFamily" Value="{StaticResource UiFontFamily}"/>
             <Setter Property="FontSize" Value="{StaticResource FontSizeBase}"/>
-            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="Padding" Value="12,6"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Style.Triggers>
                 <Trigger Property="IsHighlighted" Value="True">
@@ -122,12 +193,18 @@
             <Setter Property="Background" Value="{StaticResource BrushBgMedium}"/>
         </Style>
 
-        <!-- 工具栏按钮样式 -->
+        <!-- ===== ToolBar Separator 样式 ===== -->
+        <Style TargetType="Separator">
+            <Setter Property="Background" Value="{StaticResource BrushBorderMedium}"/>
+            <Setter Property="Margin" Value="4,3"/>
+        </Style>
+
+        <!-- 工具栏按钮样式 - Premium Flat Design -->
         <Style TargetType="{x:Type Button}" x:Key="ToolbarButtonStyle">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="{StaticResource BrushTextSecondary}"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="Padding" Value="10,5"/>
             <Setter Property="FontFamily" Value="{StaticResource UiFontFamily}"/>
             <Setter Property="FontSize" Value="{StaticResource FontSizeSM}"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -137,17 +214,17 @@
                         <Border x:Name="Bd" Background="{TemplateBinding Background}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
                                 Padding="{TemplateBinding Padding}"
-                                CornerRadius="3"
+                                CornerRadius="4"
                                 SnapsToDevicePixels="True">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="{StaticResource BrushBgHover}"/>
+                                <Setter Property="Background" Value="{StaticResource BrushBtnHoverGradient}"/>
                                 <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter Property="Background" Value="{StaticResource BrushBgLighter}"/>
+                                <Setter Property="Background" Value="{StaticResource BrushBtnPressedGradient}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -155,26 +232,28 @@
             </Setter>
         </Style>
 
-        <!-- ===== TabControl / TabItem 样式 - 精致标签栏 ===== -->
+        <!-- ===== TabControl 全局样式 ===== -->
         <Style TargetType="TabControl">
             <Setter Property="Background" Value="{StaticResource BrushBgDark}"/>
             <Setter Property="BorderThickness" Value="0,0,0,1"/>
             <Setter Property="BorderBrush" Value="{StaticResource BrushBorderSubtle}"/>
             <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="0"/>
         </Style>
 
+        <!-- ===== TabItem 全局样式 ===== -->
         <Style TargetType="TabItem">
-            <Setter Property="Background" Value="{StaticResource BrushBgMedium}"/>
+            <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="{StaticResource BrushTextSecondary}"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="Padding" Value="14,8"/>
             <Setter Property="FontFamily" Value="{StaticResource MonoFontFamily}"/>
             <Setter Property="FontSize" Value="{StaticResource FontSizeSM}"/>
-            <Setter Property="Margin" Value="1,1,0,0"/>
+            <Setter Property="Margin" Value="0,0,1,0"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Style.Triggers>
                 <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="{StaticResource BrushBgDarker}"/>
+                    <Setter Property="Background" Value="{StaticResource BrushTabActiveGradient}"/>
                     <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}"/>
                     <Setter Property="BorderThickness" Value="0,0,0,2"/>
                     <Setter Property="BorderBrush" Value="{StaticResource BrushAccentPrimary}"/>
@@ -190,32 +269,176 @@
             </Style.Triggers>
         </Style>
 
-        <!-- ===== StatusBar 样式 ===== -->
+        <!-- ===== StatusBar 样式 - Terminal Style ===== -->
         <Style TargetType="StatusBar">
-            <Setter Property="Background" Value="#161B22"/>
+            <Setter Property="Background" Value="{StaticResource BrushBgDarkest}"/>
             <Setter Property="Foreground" Value="{StaticResource BrushTextSecondary}"/>
             <Setter Property="BorderThickness" Value="0,1,0,0"/>
             <Setter Property="BorderBrush" Value="{StaticResource BrushBorderSubtle}"/>
             <Setter Property="FontFamily" Value="{StaticResource MonoFontFamily}"/>
             <Setter Property="FontSize" Value="{StaticResource FontSizeXS}"/>
-            <Setter Property="Padding" Value="4,2"/>
+            <Setter Property="Padding" Value="0"/>
         </Style>
 
         <Style TargetType="StatusBarItem">
-            <Setter Property="Padding" Value="8,2"/>
+            <Setter Property="Padding" Value="10,3"/>
         </Style>
 
-        <!-- ===== ScrollBar 暗色样式 ===== -->
+        <!-- ===== ScrollBar 暗色样式 - Slim Modern Scrollbar ===== -->
         <Style TargetType="ScrollBar">
             <Setter Property="Background" Value="{StaticResource BrushBgDarker}"/>
             <Setter Property="Foreground" Value="{StaticResource BrushTextMuted}"/>
-            <Setter Property="Width" Value="14"/>
-            <Setter Property="Height" Value="14"/>
+            <Setter Property="Width" Value="12"/>
+            <Setter Property="Height" Value="12"/>
+        </Style>
+
+        <Style TargetType="ScrollBar" x:Key="SlimScrollBarStyle">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{StaticResource BrushTextMuted}"/>
+            <Setter Property="Width" Value="10"/>
+            <Setter Property="Height" Value="10"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollBar">
+                        <Grid x:Name="GridBg" Background="{TemplateBinding Background}">
+                            <Track x:Name="PART_Track" IsDirectionReversed="False" IsEnabled="{TemplateBinding IsEnabled}">
+                                <Track.Thumb>
+                                    <Thumb>
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Border x:Name="ThumbBorder"
+                                                        CornerRadius="5"
+                                                        Background="#4A556880"
+                                                        Width="8"
+                                                        Margin="1"/>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="ThumbBorder" Property="Background" Value="#5C6370A0"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsDragging" Value="True">
+                                                        <Setter TargetName="ThumbBorder" Property="Background" Value="#00D4AA60"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="Orientation" Value="Horizontal">
+                                <!-- Horizontal scrollbar handled similarly -->
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ===== TextBox 样式 - Dark Input Field ===== -->
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="{StaticResource BrushBgInput}"/>
+            <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BrushBorderMedium}"/>
+            <Setter Property="Padding" Value="8,5"/>
+            <Setter Property="FontFamily" Value="{StaticResource MonoFontFamily}"/>
+            <Setter Property="FontSize" Value="{StaticResource FontSizeBase}"/>
+            <Setter Property="CaretBrush" Value="{StaticResource BrushAccentPrimary}"/>
+            <Setter Property="SelectionBrush" Value="{StaticResource BrushAccentBlueAlpha}"/>
+            <Style.Triggers>
+                <Trigger Property="IsFocused" Value="True">
+                    <Setter Property="BorderBrush" Value="{StaticResource BrushAccentPrimary}"/>
+                </Trigger>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="BorderBrush" Value="{StaticResource BrushBorderBright}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- ===== CheckBox 暗色样式 ===== -->
+        <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="{StaticResource BrushTextSecondary}"/>
+            <Setter Property="FontFamily" Value="{StaticResource UiFontFamily}"/>
+            <Setter Property="FontSize" Value="{StaticResource FontSizeSM}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <StackPanel Orientation="Horizontal">
+                            <Border x:Name="CheckBorder" Width="16" Height="16"
+                                    CornerRadius="3" BorderThickness="1.5"
+                                    BorderBrush="{StaticResource BrushBorderMedium}"
+                                    Background="{StaticResource BrushBgInput}"
+                                    VerticalAlignment="Center" Margin="0,0,6,0">
+                                <Path x:Name="CheckMark" Data="M2,6 L6,10 L13,2" Stroke="#00D4AA"
+                                      StrokeThickness="2" Stretch="Fill"
+                                      Visibility="Collapsed"
+                                      Width="12" Height="12"/>
+                            </Border>
+                            <ContentPresenter VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="CheckMark" Property="Visibility" Value="Visible"/>
+                                <Setter TargetName="CheckBorder" Property="BorderBrush" Value="{StaticResource BrushAccentPrimary}"/>
+                                <Setter TargetName="CheckBorder" Property="Background" Value="#00D4AA18"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="CheckBorder" Property="BorderBrush" Value="{StaticResource BrushBorderBright}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <!-- ===== Window 默认样式 ===== -->
         <Style TargetType="Window">
             <Setter Property="Background" Value="{StaticResource BrushBgDarkest}"/>
+            <Setter Property="WindowStyle" Value="SingleBorderWindow"/>
+            <!-- 允许窗口内容延伸到边框（用于自定义标题栏时使用） -->
+        </Style>
+
+        <!-- ===== 菜单栏顶级菜单项图标前缀样式 ===== -->
+        <Style TargetType="MenuItem" x:Key="TopLevelMenuItemStyle" BasedOn="{StaticResource {x:Type MenuItem}}">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="14,7"/>
+        </Style>
+
+        <!-- ===== 标签关闭按钮样式 - 极简 × 图标 (Premium) ===== -->
+        <Style x:Key="TabCloseButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#4A5568"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="4,2"/>
+            <Setter Property="Margin" Value="3,0,0,0"/>
+            <Setter Property="FontSize" Value="9"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Width" Value="18"/>
+            <Setter Property="Height" Value="17"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                CornerRadius="8"
+                                Padding="{TemplateBinding Padding}">
+                            <TextBlock Text="✕" FontSize="9" FontWeight="SemiBold"
+                                       Foreground="{TemplateBinding Foreground}"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="#FF6B6B"/>
+                                <Setter Property="Background" Value="#3D444DA0"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
     </Application.Resources>

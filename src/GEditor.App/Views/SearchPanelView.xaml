@@ -4,17 +4,29 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d"
-             d:DesignHeight="80" d:DesignWidth="500"
+             d:DesignHeight="85" d:DesignWidth="580"
              Visibility="{Binding IsVisible, Converter={StaticResource BoolToVisibilityConverter}}">
 
-    <Border Background="#F5F5F5" BorderBrush="#CCCCCC" BorderThickness="0,0,0,1" Padding="8">
+    <!--
+    ╔══════════════════════════════════════════════╗
+    ║   Search Panel - Premium Dark Theme          ║
+    ║   VS Code / Sublime Search Bar Style         ║
+    ╚══════════════════════════════════════════════╝
+    -->
+
+    <!-- 外层容器 - 深色背景 + 底部分隔线 -->
+    <Border Background="#151B23" 
+            BorderBrush="#252D38" 
+            BorderThickness="0,1,0,1"
+            Padding="10,7">
+        
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <!-- 第一行：查找 -->
+            <!-- ========== 第一行：查找输入区 ========== -->
             <Grid Grid.Row="0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -25,33 +37,100 @@
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <TextBlock Grid.Column="0" Text="查找:" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                <TextBox Grid.Column="1" x:Name="SearchTextBox" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                         VerticalAlignment="Center" Margin="0,0,5,0" Padding="4,2"/>
+                <!-- 查找标签 -->
+                <TextBlock Grid.Column="0" 
+                           Text="查找:" 
+                           VerticalAlignment="Center" 
+                           Foreground="#6B7685"
+                           FontWeight="SemiBold"
+                           FontSize="11"
+                           Margin="0,0,7,0"/>
 
-                <Button Grid.Column="2" Content="上一个" Command="{Binding FindPreviousCommand}"
-                        Padding="8,4" Margin="0,0,2,0"/>
-                <Button Grid.Column="3" Content="下一个" Command="{Binding FindNextCommand}"
-                        Padding="8,4" Margin="0,0,5,0"/>
+                <!-- 搜索输入框 -->
+                <TextBox Grid.Column="1" x:Name="SearchTextBox" 
+                         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                         VerticalAlignment="Center" Margin="0,0,7,0" Padding="6,4"
+                         Background="#0F1419"
+                         Foreground="{StaticResource BrushTextPrimary}"
+                         BorderBrush="#2F3A47"
+                         FontFamily="{StaticResource MonoFontFamily}"
+                         CaretBrush="{StaticResource BrushAccentPrimary}">
+                    <TextBox.Style>
+                        <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                            <Style.Triggers>
+                                <Trigger Property="IsFocused" Value="True">
+                                    <Setter Property="BorderBrush" Value="{StaticResource BrushAccentPrimary}"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBox.Style>
+                </TextBox>
 
-                <TextBlock Grid.Column="4" Text="{Binding MatchInfo}" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                <!-- 上一个按钮 -->
+                <Button Grid.Column="2" Content="▲" Command="{Binding FindPreviousCommand}"
+                        ToolTip="上一个 (Shift+F3)"
+                        Width="28" Height="26"
+                        FontSize="9"
+                        Style="{StaticResource ToolbarButtonStyle}"
+                        Foreground="#6B7685"
+                        Padding="0"
+                        Margin="0,0,3,0"/>
 
+                <!-- 下一个按钮 -->
+                <Button Grid.Column="3" Content="▼" Command="{Binding FindNextCommand}"
+                        ToolTip="下一个 (F3)"
+                        Width="28" Height="26"
+                        FontSize="9"
+                        Style="{StaticResource ToolbarButtonStyle}"
+                        Foreground="#6B7685"
+                        Padding="0"
+                        Margin="0,0,8,0"/>
+
+                <!-- 匹配信息文字 -->
+                <TextBlock Grid.Column="4" Text="{Binding MatchInfo}" 
+                           VerticalAlignment="Center" 
+                           Foreground="#4A5568"
+                           FontSize="10.5"
+                           Margin="0,0,10,0"/>
+
+                <!-- 区分大小写 CheckBox -->
                 <CheckBox Grid.Column="5" Content="区分大小写" IsChecked="{Binding MatchCase}"
-                          VerticalAlignment="Center" Margin="0,0,5,0"/>
-                <CheckBox Grid.Column="6" Content="全字匹配" IsChecked="{Binding WholeWord}"
-                          VerticalAlignment="Center" Margin="0,0,5,0"/>
-                <CheckBox Grid.Column="7" Content="正则" IsChecked="{Binding UseRegex}"
-                          VerticalAlignment="Center"/>
+                          VerticalAlignment="Center"
+                          Foreground="#6B7685"
+                          FontSize="11"
+                          Margin="0,0,8,0"/>
 
-                <Button Grid.Column="7" Content="X" Command="{Binding CloseCommand}"
-                        HorizontalAlignment="Right" Padding="4,2" Margin="5,0,0,0"/>
+                <!-- 全字匹配 CheckBox -->
+                <CheckBox Grid.Column="6" Content="全字匹配" IsChecked="{Binding WholeWord}"
+                          VerticalAlignment="Center"
+                          Foreground="#6B7685"
+                          FontSize="11"
+                          Margin="0,0,8,0"/>
+
+                <!-- 正则表达式 CheckBox -->
+                <CheckBox Grid.Column="7" Content="正则" IsChecked="{Binding UseRegex}"
+                          VerticalAlignment="Center"
+                          Foreground="#6B7685"
+                          FontSize="11"
+                          Margin="0,0,8,0"/>
+
+                <!-- 关闭按钮 (X) -->
+                <Button Grid.Column="8" Content="✕" 
+                        Command="{Binding CloseCommand}"
+                        HorizontalAlignment="Right"
+                        Width="24" Height="24"
+                        FontSize="10"
+                        Style="{StaticResource TabCloseButtonStyle}"
+                        Margin="2,0,0,0"/>
             </Grid>
 
-            <!-- 第二行：替换（可选） -->
-            <Grid Grid.Row="1" Margin="0,5,0,0"
+            <!-- ========== 第二行：替换区域（可选显示） ========== -->
+            <Grid Grid.Row="1" Margin="0,7,0,0"
                   Visibility="{Binding ShowReplacePanel, Converter={StaticResource BoolToVisibilityConverter}}">
+                
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
@@ -59,14 +138,41 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <TextBlock Grid.Column="0" Text="替换为:" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                <TextBox Grid.Column="1" Text="{Binding ReplaceText, UpdateSourceTrigger=PropertyChanged}"
-                         VerticalAlignment="Center" Margin="0,0,5,0" Padding="4,2"/>
+                <!-- 替换标签 -->
+                <TextBlock Grid.Column="0" 
+                           Text="替换为:" 
+                           VerticalAlignment="Center" 
+                           Foreground="#6B7685"
+                           FontWeight="SemiBold"
+                           FontSize="11"
+                           Margin="0,0,7,0"/>
 
-                <Button Grid.Column="2" Content="替换" Command="{Binding ReplaceCommand}"
-                        Padding="8,4" Margin="0,0,2,0"/>
-                <Button Grid.Column="3" Content="全部替换" Command="{Binding ReplaceAllCommand}"
-                        Padding="8,4"/>
+                <!-- 替换输入框 -->
+                <TextBox Grid.Column="1" 
+                         Text="{Binding ReplaceText, UpdateSourceTrigger=PropertyChanged}"
+                         VerticalAlignment="Center" Margin="0,0,7,0" Padding="6,4"
+                         Background="#0F1419"
+                         Foreground="{StaticResource BrushTextPrimary}"
+                         BorderBrush="#2F3A47"
+                         FontFamily="{StaticResource MonoFontFamily}"
+                         CaretBrush="{StaticResource BrushAccentPrimary}"/>
+
+                <!-- 替换按钮 -->
+                <Button Grid.Column="2" Content="替换" 
+                        Command="{Binding ReplaceCommand}"
+                        Padding="14,5" 
+                        Margin="0,0,5,0"
+                        Style="{StaticResource ToolbarButtonStyle}"
+                        Foreground="{StaticResource BrushFuncSuccess}"
+                        FontWeight="SemiBold"/>
+
+                <!-- 全部替换按钮 -->
+                <Button Grid.Column="3" Content="全部替换" 
+                        Command="{Binding ReplaceAllCommand}"
+                        Padding="14,5"
+                        Style="{StaticResource ToolbarButtonStyle}"
+                        Foreground="{StaticResource BrushAccentPrimary}"
+                        FontWeight="SemiBold"/>
             </Grid>
         </Grid>
     </Border>

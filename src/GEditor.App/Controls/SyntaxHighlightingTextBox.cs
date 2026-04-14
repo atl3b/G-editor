@@ -10,6 +10,7 @@ namespace GEditor.App.Controls;
 
 /// <summary>
 /// 支持语法高亮的文本编辑器控件
+/// Premium Edition v2.0 - 增强交互、渲染细节和性能
 /// </summary>
 public class SyntaxHighlightingTextBox : RichTextBox
 {
@@ -56,7 +57,7 @@ public class SyntaxHighlightingTextBox : RichTextBox
             nameof(CurrentLineBackground),
             typeof(Brush),
             typeof(SyntaxHighlightingTextBox),
-            new PropertyMetadata(new SolidColorBrush(Color.FromArgb(30, 0, 120, 215))));
+            new PropertyMetadata(new SolidColorBrush(Color.FromArgb(25, 0, 212, 170)))); // 更微妙的当前行高亮
 
     /// <summary>
     /// 是否启用列模式
@@ -169,11 +170,15 @@ public class SyntaxHighlightingTextBox : RichTextBox
         Padding = new Thickness(5);
         BorderThickness = new Thickness(0);
         
+        // 禁用 WPF 的默认拼写检查（编辑器不需要红色波浪线）
+        SpellCheck.IsEnabled = false;
+        
         // 默认文档
         Document = new FlowDocument
         {
             FontFamily = FontFamily,
-            FontSize = FontSize
+            FontSize = FontSize,
+            LineHeight = 1
         };
 
         TextChanged += OnInternalTextChanged;
@@ -182,7 +187,7 @@ public class SyntaxHighlightingTextBox : RichTextBox
 
     #endregion
 
-    #region 事件处理
+    #region 事件处理回调
 
     private static void OnPlainTextChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
@@ -241,15 +246,15 @@ public class SyntaxHighlightingTextBox : RichTextBox
             bool isEnabled = (bool)e.NewValue;
             if (!isEnabled)
             {
-                // 禁用自动换行：设置一个很大的 PageWidth 使文本不换行
-                // 注意：不能用 double.MaxValue，会导致布局计算溢出和 NaN/Infinity 传播
+                // 禁用自动换行：使用合理的大值，避免 double.MaxValue 导致布局溢出
+                // 100000d 足够大防止正常文本换行，但不会造成 NaN/Infinity
                 textBox.Document.PageWidth = 100000.0;
                 textBox.HorizontalScrollBarVisibility = ScrollBarVisibility.Auto;
             }
             else
             {
-                // 启用自动换行：恢复默认的页面宽度
-                textBox.Document.PageWidth = double.NaN; // NaN 表示自适应宽度（自动换行）
+                // 启用自动换行：NaN 表示自适应宽度（WPF 标准行为）
+                textBox.Document.PageWidth = double.NaN;
                 textBox.HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled;
             }
             // 重新应用高亮以适应新的宽度
@@ -274,6 +279,10 @@ public class SyntaxHighlightingTextBox : RichTextBox
             _isUpdating = false;
         }
     }
+
+    #endregion
+
+    #region 键盘事件处理
 
     private void OnPreviewKeyDown(object sender, KeyEventArgs e)
     {
@@ -316,25 +325,24 @@ public class SyntaxHighlightingTextBox : RichTextBox
                 int endLine = normalized.EndLine;
                 int endCol = normalized.EndColumn;
 
-                if (e.Key == Key.Up)
+                switch (e.Key)
                 {
-                    startLine = Math.Max(0, startLine - 1);
-                    changed = true;
-                }
-                else if (e.Key == Key.Down)
-                {
-                    endLine = Math.Min(Document.Blocks.Count - 1, endLine + 1);
-                    changed = true;
-                }
-                else if (e.Key == Key.Left)
-                {
-                    startCol = Math.Max(0, startCol - 1);
-                    changed = true;
-                }
-                else if (e.Key == Key.Right)
-                {
-                    endCol += 1;
-                    changed = true;
+                    case Key.Up:
+                        startLine = Math.Max(0, startLine - 1);
+                        changed = true;
+                        break;
+                    case Key.Down:
+                        endLine = Math.Min(Document.Blocks.Count - 1, endLine + 1);
+                        changed = true;
+                        break;
+                    case Key.Left:
+                        startCol = Math.Max(0, startCol - 1);
+                        changed = true;
+                        break;
+                    case Key.Right:
+                        endCol += 1;
+                        changed = true;
+                        break;
                 }
 
                 if (changed)
@@ -346,7 +354,7 @@ public class SyntaxHighlightingTextBox : RichTextBox
                 }
             }
 
-            // 普通文本输入在列选区所有行同时插入
+            // Enter 在列模式下插入新行
             if (e.Key == Key.Enter)
             {
                 ColumnModeTextInput?.Invoke("\n");
@@ -354,10 +362,12 @@ public class SyntaxHighlightingTextBox : RichTextBox
                 return;
             }
 
-            // 可打印字符
-            if (IsPrintableKey(e.Key) && !Keyboard.Modifiers.HasFlag(ModifierKeys.Alt) && !Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+            // 可打印字符 - 实际字符由 OnPreviewTextInput 处理
+            if (IsPrintableKey(e.Key) 
+                && !Keyboard.Modifiers.HasFlag(ModifierKeys.Alt) 
+                && !Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
             {
-                // 实际字符由 OnPreviewTextInput 处理
+                // 由 OnPreviewTextInput 处理实际字符输入
             }
 
             // 删除键
@@ -369,7 +379,7 @@ public class SyntaxHighlightingTextBox : RichTextBox
             }
         }
 
-        // 处理 Alt 键按下时的列模式
+        // Alt 按下时切换光标样式为十字（列模式提示）
         if (e.Key == Key.LeftAlt || e.Key == Key.RightAlt)
         {
             if (IsColumnModeEnabled)
@@ -381,6 +391,7 @@ public class SyntaxHighlightingTextBox : RichTextBox
 
     /// <summary>
     /// 处理文本输入事件 - 用于列模式多行同时输入
+    /// 支持中文等多字节字符的输入
     /// </summary>
     protected override void OnPreviewTextInput(TextCompositionEventArgs e)
     {
@@ -415,9 +426,13 @@ public class SyntaxHighlightingTextBox : RichTextBox
             || key >= Key.NumPad0 && key <= Key.NumPad9;
     }
 
+    #endregion
+
+    #region 鼠标事件处理 - 列选择
+
     protected override void OnPreviewMouseLeftButtonDown(MouseButtonEventArgs e)
     {
-        // Alt+鼠标拖动直接进入列选择（无需预启用列模式）
+        // Alt+鼠标拖动直接进入列选择（Notepad++ 风格）
         if (Keyboard.Modifiers.HasFlag(ModifierKeys.Alt))
         {
             // 自动启用列模式
@@ -428,12 +443,12 @@ public class SyntaxHighlightingTextBox : RichTextBox
             _isColumnSelecting = true;
             _columnSelectionStart = e.GetPosition(this);
 
-            // 获取起始位置
+            // 获取起始位置的行列坐标
             var lineCol = GetLineAndColumnFromPoint(_columnSelectionStart);
             _startLineIndex = lineCol.line;
             _startColumnIndex = lineCol.column;
 
-            // 初始化零宽度选区（竖线光标）
+            // 初始化零宽度选区（竖线光标可视化）
             ColumnSelection = new ColumnSelection(_startLineIndex, _startColumnIndex, _startLineIndex, _startColumnIndex);
             UpdateColumnSelectionVisual();
 
@@ -463,7 +478,7 @@ public class SyntaxHighlightingTextBox : RichTextBox
             int endLine = lineCol.line;
             int endColumn = lineCol.column;
 
-            // 更新选区
+            // 更新选区矩形
             var selection = new ColumnSelection(
                 Math.Min(_startLineIndex, endLine),
                 Math.Min(_startColumnIndex, endColumn),
@@ -498,6 +513,7 @@ public class SyntaxHighlightingTextBox : RichTextBox
 
     /// <summary>
     /// 检查矩形是否有效（非 NaN、非 Infinity、非空）
+    /// 这是防御性编程的关键：GetCharacterRect 在某些边缘情况会返回无效值
     /// </summary>
     private static bool IsValidRect(Rect rect)
     {
@@ -546,6 +562,11 @@ public class SyntaxHighlightingTextBox : RichTextBox
         ColumnSelection = ColumnSelection.Empty;
     }
 
+    /// <summary>
+    /// 根据屏幕坐标获取逻辑行号和列号
+    /// 使用 Document.Blocks 索引定位逻辑行（Paragraph），而非视觉行
+    /// 这确保了与 ColumnSelection 的坐标系一致性
+    /// </summary>
     private (int line, int column) GetLineAndColumnFromPoint(Point point)
     {
         // 获取点击位置的文本指针
@@ -553,7 +574,7 @@ public class SyntaxHighlightingTextBox : RichTextBox
         if (textPointer == null)
             return (0, 0);
 
-        // 计算行号 - 使用 Document.Blocks 索引（逻辑行）而非 GetLineStartPosition（视觉行）
+        // 使用 Document.Blocks 遍历每个 Paragraph（逻辑行）
         int lineNumber = 0;
         foreach (var block in Document.Blocks)
         {
@@ -565,7 +586,7 @@ public class SyntaxHighlightingTextBox : RichTextBox
                 {
                     if (textPointer.CompareTo(contentStart) >= 0 && textPointer.CompareTo(contentEnd) <= 0)
                     {
-                        // 找到当前行，计算列号
+                        // 找到当前行，计算列号（从行首到当前点的纯文本长度）
                         var range = new TextRange(contentStart, textPointer);
                         return (lineNumber, range.Text.Length);
                     }
@@ -574,20 +595,20 @@ public class SyntaxHighlightingTextBox : RichTextBox
             }
         }
 
-        // 如果未找到（可能在文档末尾之后），返回最后一行
+        // 未找到则返回最后一行
         return (Math.Max(0, Document.Blocks.Count - 1), 0);
     }
 
+    /// <summary>
+    /// 获取列选区的单个合并矩形（兼容旧接口）
+    /// </summary>
     private Rect GetSelectionRectFromColumnSelection(ColumnSelection selection)
     {
-        var normalized = selection.Normalized();
         var rects = GetSelectionRectsFromColumnSelection(selection);
 
-        // 如果只有一个矩形，返回它
         if (rects.Count == 1)
             return rects[0];
 
-        // 合并多个矩形为一个大矩形
         if (rects.Count > 1)
         {
             double minLeft = rects.Min(r => r.Left);
@@ -601,14 +622,14 @@ public class SyntaxHighlightingTextBox : RichTextBox
     }
 
     /// <summary>
-    /// 获取列选区的逐行矩形列表（用于逐行绘制高亮）
+    /// 获取列选区的逐行矩形列表（核心方法 - 用于逐行绘制高亮）
+    /// 每个矩形对应一行中的选区范围
     /// </summary>
     private List<Rect> GetSelectionRectsFromColumnSelection(ColumnSelection selection)
     {
         var normalized = selection.Normalized();
         var rects = new List<Rect>();
 
-        // 获取每行的字符矩形
         for (int line = normalized.StartLine; line <= normalized.EndLine; line++)
         {
             if (line < 0 || line >= Document.Blocks.Count)
@@ -618,18 +639,20 @@ public class SyntaxHighlightingTextBox : RichTextBox
             if (paragraph == null)
                 continue;
 
-            // 获取行起始位置（使用 Paragraph.ContentStart 而非 GetLineStartPosition）
+            // 获取行起始位置
             var lineStart = paragraph.ContentStart;
             if (lineStart == null)
                 continue;
 
-            // 获取起始列位置
+            // 计算起始和结束列的 TextPointer
             var startPointer = GetTextPositionAtOffset(lineStart, normalized.StartColumn);
             var endPointer = GetTextPositionAtOffset(lineStart, normalized.EndColumn);
 
             if (startPointer != null)
             {
                 var startRect = startPointer.GetCharacterRect(LogicalDirection.Forward);
+                
+                // NaN/Infinity 防护 - 关键！
                 if (!IsValidRect(startRect))
                     continue;
 
@@ -639,35 +662,44 @@ public class SyntaxHighlightingTextBox : RichTextBox
                     var endRect = endPointer?.GetCharacterRect(LogicalDirection.Backward) ?? startRect;
                     if (!IsValidRect(endRect))
                         endRect = startRect;
-                    var rect = new Rect(startRect.Left, startRect.Top, endRect.Right - startRect.Left, startRect.Height);
+                    var rect = new Rect(startRect.Left, startRect.Top, 
+                                        endRect.Right - startRect.Left, startRect.Height);
                     if (IsValidRect(rect))
                         rects.Add(rect);
                 }
                 else
                 {
                     // 多行选区中的某一行
-                    var endRect = endPointer?.GetCharacterRect(LogicalDirection.Backward) ?? new Rect(startRect.Right, startRect.Top, 0, startRect.Height);
+                    var endRect = endPointer?.GetCharacterRect(LogicalDirection.Backward) 
+                                  ?? new Rect(startRect.Right, startRect.Top, 0, startRect.Height);
                     if (!IsValidRect(endRect))
                         endRect = new Rect(startRect.Right, startRect.Top, 0, startRect.Height);
 
                     if (line == normalized.StartLine)
                     {
-                        var rect = new Rect(startRect.Left, startRect.Top, startRect.Right - startRect.Left, startRect.Height);
+                        // 首行：从 StartColumn 到行末
+                        var rect = new Rect(startRect.Left, startRect.Top, 
+                                            startRect.Right - startRect.Left, startRect.Height);
                         if (IsValidRect(rect))
                             rects.Add(rect);
                     }
                     else if (line == normalized.EndLine)
                     {
-                        var rect = new Rect(startRect.Left, startRect.Top, endRect.Right - startRect.Left, startRect.Height);
+                        // 末行：从行首到 EndColumn
+                        var rect = new Rect(startRect.Left, startRect.Top, 
+                                            endRect.Right - startRect.Left, startRect.Height);
                         if (IsValidRect(rect))
                             rects.Add(rect);
                     }
                     else
                     {
-                        // 中间行 - 延伸到行末
+                        // 中间行：整行
                         var lineEndRect = paragraph.ContentEnd.GetCharacterRect(LogicalDirection.Backward);
-                        double right = IsValidRect(lineEndRect) ? Math.Max(lineEndRect.Right, startRect.Right) : startRect.Right;
-                        var rect = new Rect(startRect.Left, startRect.Top, right - startRect.Left, startRect.Height);
+                        double right = IsValidRect(lineEndRect) 
+                            ? Math.Max(lineEndRect.Right, startRect.Right) 
+                            : startRect.Right;
+                        var rect = new Rect(startRect.Left, startRect.Top, 
+                                            right - startRect.Left, startRect.Height);
                         if (IsValidRect(rect))
                             rects.Add(rect);
                     }
@@ -678,6 +710,10 @@ public class SyntaxHighlightingTextBox : RichTextBox
         return rects;
     }
 
+    /// <summary>
+    /// 根据 offset 偏移量获取 TextPointer
+    /// 只计算纯文本字符偏移，跳过元素标记
+    /// </summary>
     private TextPointer? GetTextPositionAtOffset(TextPointer start, int offset)
     {
         var current = start;
@@ -685,7 +721,7 @@ public class SyntaxHighlightingTextBox : RichTextBox
 
         while (current != null && count < offset)
         {
-            // 只计算文本字符，跳过元素开始/结束标记
+            // 只计数文本内容
             if (current.GetPointerContext(LogicalDirection.Forward) == TextPointerContext.Text)
             {
                 var textRun = current.GetTextInRun(LogicalDirection.Forward);
@@ -710,7 +746,7 @@ public class SyntaxHighlightingTextBox : RichTextBox
     #region 公共方法
 
     /// <summary>
-    /// 刷新语法高亮
+    /// 刷新语法高亮（外部调用入口）
     /// </summary>
     public void RefreshHighlighting()
     {
@@ -719,7 +755,7 @@ public class SyntaxHighlightingTextBox : RichTextBox
 
     #endregion
 
-    #region 私有方法
+    #region 私有方法 - 文本操作和高亮
 
     private void SetText(string text)
     {
@@ -747,29 +783,31 @@ public class SyntaxHighlightingTextBox : RichTextBox
         return textRange.Text.TrimEnd('\r', '\n');
     }
 
+    /// <summary>
+    /// 执行语法高亮渲染 - 将 Token 结果应用到 FlowDocument
+    /// </summary>
     private void UpdateHighlighting()
     {
         if (SyntaxHighlighter == null || DocumentLines == null)
-        {
             return;
-        }
 
         _isUpdating = true;
         try
         {
             var highlightResult = SyntaxHighlighter.HighlightDocument(DocumentLines);
             
-            // 重建文档，保留光标位置
+            // 保存当前光标位置用于恢复
             var caretLine = GetCaretLine();
             var caretColumn = GetCaretColumn();
             
+            // 清空并重建文档
             Document.Blocks.Clear();
             
             foreach (var lineTokens in highlightResult.LineTokens)
             {
                 var paragraph = new Paragraph();
                 
-                // 为每个 token 创建一个带颜色的 Run
+                // 为每个 token 创建带颜色的 Run
                 foreach (var token in lineTokens)
                 {
                     var run = new Run(token.Text)
@@ -779,7 +817,7 @@ public class SyntaxHighlightingTextBox : RichTextBox
                     paragraph.Inlines.Add(run);
                 }
                 
-                // 如果行没有 token，添加一个空的 Run
+                // 空行添加占位 Run
                 if (lineTokens.Count == 0)
                 {
                     paragraph.Inlines.Add(new Run());
@@ -797,24 +835,31 @@ public class SyntaxHighlightingTextBox : RichTextBox
         }
     }
 
+    /// <summary>
+    /// 根据 Token 类型返回对应的颜色画刷
+    /// 采用 VS Code Dark+ 配色方案
+    /// </summary>
     private Brush GetBrushForTokenKind(TokenKind kind)
     {
         return kind switch
         {
-            TokenKind.Keyword => new SolidColorBrush(Color.FromRgb(86, 156, 214)),       // 蓝色
-            TokenKind.String => new SolidColorBrush(Color.FromRgb(214, 157, 133)),        // 橙色
-            TokenKind.Number => new SolidColorBrush(Color.FromRgb(181, 206, 168)),        // 浅绿色
-            TokenKind.Comment => new SolidColorBrush(Color.FromRgb(106, 153, 85)),        // 绿色
-            TokenKind.Preprocessor => new SolidColorBrush(Color.FromRgb(155, 155, 155)), // 灰色
-            TokenKind.Type => new SolidColorBrush(Color.FromRgb(78, 201, 176)),          // 青色
-            TokenKind.Attribute => new SolidColorBrush(Color.FromRgb(255, 200, 0)),     // 金色
-            TokenKind.Operator => new SolidColorBrush(Color.FromRgb(220, 220, 220)),    // 白色
-            TokenKind.Delimiter => new SolidColorBrush(Color.FromRgb(220, 220, 220)),   // 白色
-            TokenKind.Identifier => new SolidColorBrush(Colors.White),                   // 白色
-            TokenKind.PlainText or TokenKind.None or _ => new SolidColorBrush(Colors.White) // 默认白色
+            TokenKind.Keyword => new SolidColorBrush(Color.FromRgb(86, 156, 214)),       // Blue - C9DCFF
+            TokenKind.String => new SolidColorBrush(Color.FromRgb(206, 145, 120)),       // Orange - CE9178
+            TokenKind.Number => new SolidColorBrush(Color.FromRgb(181, 206, 168)),       // Green - B5CEA8
+            TokenKind.Comment => new SolidColorBrush(Color.FromRgb(106, 153, 85)),       // Green-Gray - 6A9955
+            TokenKind.Preprocessor => new SolidColorBrush(Color.FromRgb(155, 155, 155)), // Gray - 9B9B9B
+            TokenKind.Type => new SolidColorBrush(Color.FromRgb(78, 201, 176)),          // Cyan - 4EC9B0
+            TokenKind.Attribute => new SolidColorBrush(Color.FromRgb(197, 134, 192)),    // Purple - C586C0
+            TokenKind.Operator => new SolidColorBrush(Color.FromRgb(212, 212, 212)),    // White - D4D4D4
+            TokenKind.Delimiter => new SolidColorBrush(Color.FromRgb(212, 212, 212)),   // White - D4D4D4
+            TokenKind.Identifier => new SolidColorBrush(Color.FromRgb(230, 237, 243)),  // Light - E6EDF3
+            TokenKind.PlainText or TokenKind.None or _ => new SolidColorBrush(Color.FromRgb(230, 237, 243)) // Default Light
         };
     }
 
+    /// <summary>
+    /// 获取当前光标所在行号（0-based）
+    /// </summary>
     private int GetCaretLine()
     {
         var line = Document.ContentStart.GetLineStartPosition(0);
@@ -830,6 +875,9 @@ public class SyntaxHighlightingTextBox : RichTextBox
         return lineNumber;
     }
 
+    /// <summary>
+    /// 获取当前光标所在列号（1-based）
+    /// </summary>
     private int GetCaretColumn()
     {
         var lineStart = CaretPosition.GetLineStartPosition(0);
@@ -839,6 +887,9 @@ public class SyntaxHighlightingTextBox : RichTextBox
         return range.Text.Length + 1;
     }
 
+    /// <summary>
+    /// 恢复光标到指定位置
+    /// </summary>
     private void RestoreCaretPosition(int line, int column)
     {
         try
@@ -846,6 +897,7 @@ public class SyntaxHighlightingTextBox : RichTextBox
             var pointer = Document.ContentStart;
             int currentLine = 0;
             
+            // 先跳转到目标行
             while (currentLine < line && pointer != null)
             {
                 var nextLine = pointer.GetLineStartPosition(1);
@@ -854,9 +906,9 @@ public class SyntaxHighlightingTextBox : RichTextBox
                 currentLine++;
             }
             
+            // 再移动到目标列
             if (pointer != null)
             {
-                // 将指针移动到指定列
                 for (int i = 0; i < column - 1 && pointer != null; i++)
                 {
                     var next = pointer.GetPositionAtOffset(1);
@@ -868,7 +920,7 @@ public class SyntaxHighlightingTextBox : RichTextBox
         }
         catch
         {
-            // 忽略位置恢复错误
+            // 忽略位置恢复错误（极端情况）
         }
     }
 
