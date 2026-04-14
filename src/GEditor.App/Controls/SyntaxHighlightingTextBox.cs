@@ -144,6 +144,16 @@ public class SyntaxHighlightingTextBox : RichTextBox
     private int _startLineIndex;
     private int _startColumnIndex;
 
+    /// <summary>
+    /// 列模式键盘输入事件 - 在所有选中行同时插入文本时触发
+    /// </summary>
+    public event Action<string>? ColumnModeTextInput;
+
+    /// <summary>
+    /// 列模式退出事件
+    /// </summary>
+    public event Action? ColumnModeExited;
+
     #endregion
 
     #region 构造函数
@@ -232,7 +242,8 @@ public class SyntaxHighlightingTextBox : RichTextBox
             if (!isEnabled)
             {
                 // 禁用自动换行：设置一个很大的 PageWidth 使文本不换行
-                textBox.Document.PageWidth = double.MaxValue;
+                // 注意：不能用 double.MaxValue，会导致布局计算溢出和 NaN/Infinity 传播
+                textBox.Document.PageWidth = 100000.0;
                 textBox.HorizontalScrollBarVisibility = ScrollBarVisibility.Auto;
             }
             else
@@ -266,13 +277,95 @@ public class SyntaxHighlightingTextBox : RichTextBox
 
     private void OnPreviewKeyDown(object sender, KeyEventArgs e)
     {
+        // ESC 退出列模式
+        if (e.Key == Key.Escape && IsColumnModeEnabled)
+        {
+            IsColumnModeEnabled = false;
+            ColumnModeExited?.Invoke();
+            e.Handled = true;
+            return;
+        }
+
         // 处理 Tab 键
         if (e.Key == Key.Tab)
         {
             if (Keyboard.Modifiers == ModifierKeys.None)
             {
+                if (IsColumnModeEnabled && !ColumnSelection.IsEmpty)
+                {
+                    // 列模式下 Tab 在所有选中行插入空格
+                    ColumnModeTextInput?.Invoke("    ");
+                    e.Handled = true;
+                    return;
+                }
                 CaretPosition.InsertTextInRun("    "); // 插入4个空格
                 e.Handled = true;
+            }
+        }
+
+        // 列模式下的键盘输入处理
+        if (IsColumnModeEnabled && !ColumnSelection.IsEmpty)
+        {
+            // Alt+Shift+方向键扩展列选区
+            if (Keyboard.Modifiers.HasFlag(ModifierKeys.Alt) && Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
+            {
+                var normalized = ColumnSelection.Normalized();
+                bool changed = false;
+                int startLine = normalized.StartLine;
+                int startCol = normalized.StartColumn;
+                int endLine = normalized.EndLine;
+                int endCol = normalized.EndColumn;
+
+                if (e.Key == Key.Up)
+                {
+                    startLine = Math.Max(0, startLine - 1);
+                    changed = true;
+                }
+                else if (e.Key == Key.Down)
+                {
+                    endLine = Math.Min(Document.Blocks.Count - 1, endLine + 1);
+                    changed = true;
+                }
+                else if (e.Key == Key.Left)
+                {
+                    startCol = Math.Max(0, startCol - 1);
+                    changed = true;
+                }
+                else if (e.Key == Key.Right)
+                {
+                    endCol += 1;
+                    changed = true;
+                }
+
+                if (changed)
+                {
+                    ColumnSelection = new ColumnSelection(startLine, startCol, endLine, endCol);
+                    UpdateColumnSelectionVisual();
+                    e.Handled = true;
+                    return;
+                }
+            }
+
+            // 普通文本输入在列选区所有行同时插入
+            if (e.Key == Key.Enter)
+            {
+                ColumnModeTextInput?.Invoke("\n");
+                e.Handled = true;
+                return;
+            }
+
+            // 可打印字符
+            if (IsPrintableKey(e.Key) && !Keyboard.Modifiers.HasFlag(ModifierKeys.Alt) && !Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+            {
+                // 实际字符由 OnPreviewTextInput 处理
+            }
+
+            // 删除键
+            if (e.Key == Key.Delete || e.Key == Key.Back)
+            {
+                ColumnModeTextInput?.Invoke("");
+                e.Handled = true;
+                return;
             }
         }
 
@@ -286,10 +379,51 @@ public class SyntaxHighlightingTextBox : RichTextBox
         }
     }
 
+    /// <summary>
+    /// 处理文本输入事件 - 用于列模式多行同时输入
+    /// </summary>
+    protected override void OnPreviewTextInput(TextCompositionEventArgs e)
+    {
+        if (IsColumnModeEnabled && !ColumnSelection.IsEmpty && !string.IsNullOrEmpty(e.Text))
+        {
+            ColumnModeTextInput?.Invoke(e.Text);
+            e.Handled = true;
+            return;
+        }
+
+        base.OnPreviewTextInput(e);
+    }
+
+    /// <summary>
+    /// 判断按键是否为可打印字符
+    /// </summary>
+    private static bool IsPrintableKey(Key key)
+    {
+        return key >= Key.D0 && key <= Key.Z
+            || key >= Key.OemTilde && key <= Key.OemBackslash
+            || key == Key.Space
+            || key == Key.OemMinus
+            || key == Key.OemPlus
+            || key == Key.OemOpenBrackets
+            || key == Key.OemCloseBrackets
+            || key == Key.OemPipe
+            || key == Key.OemSemicolon
+            || key == Key.OemQuotes
+            || key == Key.OemComma
+            || key == Key.OemPeriod
+            || key == Key.OemQuestion
+            || key >= Key.NumPad0 && key <= Key.NumPad9;
+    }
+
     protected override void OnPreviewMouseLeftButtonDown(MouseButtonEventArgs e)
     {
-        if (IsColumnModeEnabled && Keyboard.Modifiers.HasFlag(ModifierKeys.Alt))
+        // Alt+鼠标拖动直接进入列选择（无需预启用列模式）
+        if (Keyboard.Modifiers.HasFlag(ModifierKeys.Alt))
         {
+            // 自动启用列模式
+            if (!IsColumnModeEnabled)
+                IsColumnModeEnabled = true;
+
             // 开始列选择
             _isColumnSelecting = true;
             _columnSelectionStart = e.GetPosition(this);
@@ -299,10 +433,21 @@ public class SyntaxHighlightingTextBox : RichTextBox
             _startLineIndex = lineCol.line;
             _startColumnIndex = lineCol.column;
 
+            // 初始化零宽度选区（竖线光标）
+            ColumnSelection = new ColumnSelection(_startLineIndex, _startColumnIndex, _startLineIndex, _startColumnIndex);
+            UpdateColumnSelectionVisual();
+
             // 抑制默认选择行为
             e.Handled = true;
             CaptureMouse();
             return;
+        }
+
+        // 如果正在列模式且已有选区，点击其他地方退出列模式
+        if (IsColumnModeEnabled && !Keyboard.Modifiers.HasFlag(ModifierKeys.Alt))
+        {
+            IsColumnModeEnabled = false;
+            ColumnModeExited?.Invoke();
         }
 
         base.OnPreviewMouseLeftButtonDown(e);
@@ -351,6 +496,18 @@ public class SyntaxHighlightingTextBox : RichTextBox
 
     #region 列选择辅助方法
 
+    /// <summary>
+    /// 检查矩形是否有效（非 NaN、非 Infinity、非空）
+    /// </summary>
+    private static bool IsValidRect(Rect rect)
+    {
+        return !rect.IsEmpty
+            && !double.IsNaN(rect.X) && !double.IsNaN(rect.Y)
+            && !double.IsNaN(rect.Width) && !double.IsNaN(rect.Height)
+            && !double.IsInfinity(rect.X) && !double.IsInfinity(rect.Y)
+            && !double.IsInfinity(rect.Width) && !double.IsInfinity(rect.Height);
+    }
+
     private void EnsureColumnSelectionAdorner()
     {
         if (_columnSelectionAdorner == null)
@@ -379,8 +536,8 @@ public class SyntaxHighlightingTextBox : RichTextBox
             return;
         }
 
-        var rect = GetSelectionRectFromColumnSelection(ColumnSelection);
-        _columnSelectionAdorner.SetSelection(rect);
+        var rects = GetSelectionRectsFromColumnSelection(ColumnSelection);
+        _columnSelectionAdorner.SetSelectionRects(rects);
     }
 
     private void ClearColumnSelection()
@@ -396,88 +553,35 @@ public class SyntaxHighlightingTextBox : RichTextBox
         if (textPointer == null)
             return (0, 0);
 
-        // 计算行号
+        // 计算行号 - 使用 Document.Blocks 索引（逻辑行）而非 GetLineStartPosition（视觉行）
         int lineNumber = 0;
-        var lineStart = Document.ContentStart.GetLineStartPosition(0);
-        var current = lineStart;
-
-        while (current != null && current.CompareTo(textPointer) < 0)
+        foreach (var block in Document.Blocks)
         {
-            var nextLine = current.GetLineStartPosition(1);
-            if (nextLine == null || nextLine.CompareTo(current) == 0)
-                break;
-            current = nextLine;
-            lineNumber++;
+            if (block is Paragraph paragraph)
+            {
+                var contentStart = paragraph.ContentStart;
+                var contentEnd = paragraph.ContentEnd;
+                if (contentStart != null && contentEnd != null)
+                {
+                    if (textPointer.CompareTo(contentStart) >= 0 && textPointer.CompareTo(contentEnd) <= 0)
+                    {
+                        // 找到当前行，计算列号
+                        var range = new TextRange(contentStart, textPointer);
+                        return (lineNumber, range.Text.Length);
+                    }
+                }
+                lineNumber++;
+            }
         }
 
-        // 计算列号
-        int columnNumber = 0;
-        if (lineStart != null)
-        {
-            var range = new TextRange(lineStart, textPointer);
-            columnNumber = range.Text.Length;
-        }
-
-        // 确保在有效范围内
-        lineNumber = Math.Max(0, Math.Min(lineNumber, Document.Blocks.Count - 1));
-
-        return (lineNumber, columnNumber);
+        // 如果未找到（可能在文档末尾之后），返回最后一行
+        return (Math.Max(0, Document.Blocks.Count - 1), 0);
     }
 
     private Rect GetSelectionRectFromColumnSelection(ColumnSelection selection)
     {
         var normalized = selection.Normalized();
-        var rects = new List<Rect>();
-
-        // 获取每行的字符矩形
-        for (int line = normalized.StartLine; line <= normalized.EndLine; line++)
-        {
-            if (line < 0 || line >= Document.Blocks.Count)
-                continue;
-
-            var paragraph = Document.Blocks.ElementAtOrDefault(line) as Paragraph;
-            if (paragraph == null)
-                continue;
-
-            // 获取行起始位置
-            var lineStart = paragraph.ContentStart.GetLineStartPosition(0);
-            if (lineStart == null)
-                continue;
-
-            // 获取起始列位置
-            var startPointer = GetTextPositionAtOffset(lineStart, normalized.StartColumn);
-            var endPointer = GetTextPositionAtOffset(lineStart, normalized.EndColumn);
-
-            if (startPointer != null)
-            {
-                var startRect = startPointer.GetCharacterRect(LogicalDirection.Forward);
-                if (line == normalized.StartLine && line == normalized.EndLine)
-                {
-                    // 单行选区
-                    var endRect = endPointer?.GetCharacterRect(LogicalDirection.Backward) ?? startRect;
-                    return new Rect(startRect.Left, startRect.Top, endRect.Right - startRect.Left, startRect.Height);
-                }
-                else
-                {
-                    // 多行选区中的某一行
-                    var endCol = line == normalized.EndLine ? normalized.EndColumn : paragraph.ContentEnd.GetLineStartPosition(0)?.GetCharacterRect(LogicalDirection.Forward).Location.X ?? startRect.Right;
-                    var endRect = endPointer?.GetCharacterRect(LogicalDirection.Backward) ?? new Rect(startRect.Right, startRect.Top, 0, startRect.Height);
-
-                    if (line == normalized.StartLine)
-                    {
-                        rects.Add(new Rect(startRect.Left, startRect.Top, startRect.Right - startRect.Left, startRect.Height));
-                    }
-                    else if (line == normalized.EndLine)
-                    {
-                        rects.Add(new Rect(startRect.Left, startRect.Top, endRect.Right - startRect.Left, startRect.Height));
-                    }
-                    else
-                    {
-                        rects.Add(new Rect(startRect.Left, startRect.Top, startRect.Right - startRect.Left, startRect.Height));
-                    }
-                }
-            }
-        }
+        var rects = GetSelectionRectsFromColumnSelection(selection);
 
         // 如果只有一个矩形，返回它
         if (rects.Count == 1)
@@ -496,6 +600,84 @@ public class SyntaxHighlightingTextBox : RichTextBox
         return Rect.Empty;
     }
 
+    /// <summary>
+    /// 获取列选区的逐行矩形列表（用于逐行绘制高亮）
+    /// </summary>
+    private List<Rect> GetSelectionRectsFromColumnSelection(ColumnSelection selection)
+    {
+        var normalized = selection.Normalized();
+        var rects = new List<Rect>();
+
+        // 获取每行的字符矩形
+        for (int line = normalized.StartLine; line <= normalized.EndLine; line++)
+        {
+            if (line < 0 || line >= Document.Blocks.Count)
+                continue;
+
+            var paragraph = Document.Blocks.ElementAtOrDefault(line) as Paragraph;
+            if (paragraph == null)
+                continue;
+
+            // 获取行起始位置（使用 Paragraph.ContentStart 而非 GetLineStartPosition）
+            var lineStart = paragraph.ContentStart;
+            if (lineStart == null)
+                continue;
+
+            // 获取起始列位置
+            var startPointer = GetTextPositionAtOffset(lineStart, normalized.StartColumn);
+            var endPointer = GetTextPositionAtOffset(lineStart, normalized.EndColumn);
+
+            if (startPointer != null)
+            {
+                var startRect = startPointer.GetCharacterRect(LogicalDirection.Forward);
+                if (!IsValidRect(startRect))
+                    continue;
+
+                if (line == normalized.StartLine && line == normalized.EndLine)
+                {
+                    // 单行选区
+                    var endRect = endPointer?.GetCharacterRect(LogicalDirection.Backward) ?? startRect;
+                    if (!IsValidRect(endRect))
+                        endRect = startRect;
+                    var rect = new Rect(startRect.Left, startRect.Top, endRect.Right - startRect.Left, startRect.Height);
+                    if (IsValidRect(rect))
+                        rects.Add(rect);
+                }
+                else
+                {
+                    // 多行选区中的某一行
+                    var endRect = endPointer?.GetCharacterRect(LogicalDirection.Backward) ?? new Rect(startRect.Right, startRect.Top, 0, startRect.Height);
+                    if (!IsValidRect(endRect))
+                        endRect = new Rect(startRect.Right, startRect.Top, 0, startRect.Height);
+
+                    if (line == normalized.StartLine)
+                    {
+                        var rect = new Rect(startRect.Left, startRect.Top, startRect.Right - startRect.Left, startRect.Height);
+                        if (IsValidRect(rect))
+                            rects.Add(rect);
+                    }
+                    else if (line == normalized.EndLine)
+                    {
+                        var rect = new Rect(startRect.Left, startRect.Top, endRect.Right - startRect.Left, startRect.Height);
+                        if (IsValidRect(rect))
+                            rects.Add(rect);
+                    }
+                    else
+                    {
+                        // 中间行 - 延伸到行末
+                        var lineEndRect = paragraph.ContentEnd.GetCharacterRect(LogicalDirection.Backward);
+                        double right = IsValidRect(lineEndRect) ? Math.Max(lineEndRect.Right, startRect.Right) : startRect.Right;
+                        var rect = new Rect(startRect.Left, startRect.Top, right - startRect.Left, startRect.Height);
+                        if (IsValidRect(rect))
+                            rects.Add(rect);
+                    }
+                }
+            }
+        }
+
+        return rects;
+    }
+
     private TextPointer? GetTextPositionAtOffset(TextPointer start, int offset)
     {
         var current = start;
@@ -503,11 +685,21 @@ public class SyntaxHighlightingTextBox : RichTextBox
 
         while (current != null && count < offset)
         {
-            var next = current.GetPositionAtOffset(1);
-            if (next == null || next.CompareTo(current) == 0)
-                break;
-            current = next;
-            count++;
+            // 只计算文本字符，跳过元素开始/结束标记
+            if (current.GetPointerContext(LogicalDirection.Forward) == TextPointerContext.Text)
+            {
+                var textRun = current.GetTextInRun(LogicalDirection.Forward);
+                int charsToSkip = Math.Min(textRun.Length, offset - count);
+                current = current.GetPositionAtOffset(charsToSkip);
+                count += charsToSkip;
+            }
+            else
+            {
+                var next = current.GetPositionAtOffset(1);
+                if (next == null || next.CompareTo(current) == 0)
+                    break;
+                current = next;
+            }
         }
 
         return current;

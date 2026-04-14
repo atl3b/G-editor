@@ -12,8 +12,59 @@
         Height="768"
         MinWidth="400"
         MinHeight="300"
-        WindowStartupLocation="CenterScreen">
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource BrushBgDarkest}"
+        FontFamily="{StaticResource UiFontFamily}"
+        TextElement.Foreground="{StaticResource BrushTextPrimary}">
 
+    <!--
+    ╔══════════════════════════════════════════════════════════╗
+    ║          G-editor  Main Window  -  Geek Theme              ║
+    ║   Cyber Cyan Accent · Dark Layers · Inner Shadow Editor     ║
+    ╚══════════════════════════════════════════════════════════╝
+    -->
+
+    <Window.Resources>
+
+        <!-- ===== 标签关闭按钮样式 - 极简 × 图标 ===== -->
+        <Style x:Key="TabCloseButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#545D68"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="3,1"/>
+            <Setter Property="Margin" Value="2,0,0,0"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Width" Value="18"/>
+            <Setter Property="Height" Value="16"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                CornerRadius="3"
+                                Padding="{TemplateBinding Padding}">
+                            <TextBlock Text="✕" FontSize="10" FontWeight="Bold"
+                                       Foreground="{TemplateBinding Foreground}"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="#FF6B6B"/>
+                                <Setter Property="Background" Value="#3D444D"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+    </Window.Resources>
+
+    <!-- ==================== 全局快捷键 ==================== -->
     <Window.InputBindings>
         <KeyBinding Key="N" Modifiers="Ctrl" Command="{Binding NewCommand}"/>
         <KeyBinding Key="O" Modifiers="Ctrl" Command="{Binding OpenCommand}"/>
@@ -32,15 +83,30 @@
         <KeyBinding Key="G" Modifiers="Ctrl" Command="{Binding GoToLineCommand}"/>
     </Window.InputBindings>
 
-    <DockPanel>
-        <!-- 菜单栏 -->
-        <Menu DockPanel.Dock="Top">
-            <!-- 文件菜单 -->
-            <MenuItem Header="_文件">
+    <!-- ══════════════ 根容器 ══════════════ -->
+    <DockPanel Background="{StaticResource BrushBgDarkest}">
+
+        <!-- ========== 菜单栏 ========== -->
+        <Menu DockPanel.Dock="Top"
+              Background="{StaticResource BrushBgMedium}"
+              Foreground="{StaticResource BrushTextPrimary}"
+              BorderThickness="0,0,0,1"
+              BorderBrush="{StaticResource BrushBorderSubtle}"
+              FontSize="{StaticResource FontSizeBase}">
+            
+            <!-- 文件 -->
+            <MenuItem Header="_文件" FontWeight="SemiBold">
+                <MenuItem.HeaderTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="📄" Margin="0,0,5,0" FontSize="12"/>
+                            <TextBlock Text="文件(_F)"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </MenuItem.HeaderTemplate>
                 <MenuItem Header="_新建(_N)" Command="{Binding NewCommand}" InputGestureText="Ctrl+N"/>
                 <MenuItem Header="_打开(_O)..." Command="{Binding OpenCommand}" InputGestureText="Ctrl+O"/>
-                <Separator/>
-                <!-- 最近打开的文件 -->
+                <Separator Background="{StaticResource BrushBorderSubtle}"/>
                 <MenuItem Header="最近文件" ItemsSource="{Binding RecentFiles}">
                     <MenuItem.ItemContainerStyle>
                         <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
@@ -50,53 +116,113 @@
                         </Style>
                     </MenuItem.ItemContainerStyle>
                 </MenuItem>
-                <Separator/>
-                <MenuItem Header="_保存(_S)" Command="{Binding SaveCommand}" InputGestureText="Ctrl+S"/>
+                <Separator Background="{StaticResource BrushBorderSubtle}"/>
+                <MenuItem Header="_保存(_S)" Command="{Binding SaveCommand}" InputGestureText="Ctrl+S">
+                    <MenuItem.Icon>
+                        <TextBlock Text="💾" FontSize="10"/>
+                    </MenuItem.Icon>
+                </MenuItem>
                 <MenuItem Header="另存为(_A)..." Command="{Binding SaveAsCommand}" InputGestureText="Ctrl+Shift+S"/>
-                <Separator/>
+                <Separator Background="{StaticResource BrushBorderSubtle}"/>
                 <MenuItem Header="关闭(_C)" Command="{Binding CloseCommand}" InputGestureText="Ctrl+W"/>
-                <Separator/>
+                <Separator Background="{StaticResource BrushBorderSubtle}"/>
                 <MenuItem Header="退出(_X)" Command="{Binding ExitCommand}" InputGestureText="Alt+F4"/>
             </MenuItem>
 
-            <!-- 编辑菜单 -->
-            <MenuItem Header="_编辑">
+            <!-- 编辑 -->
+            <MenuItem Header="_编辑" FontWeight="SemiBold">
+                <MenuItem.HeaderTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="✏️" Margin="0,0,5,0" FontSize="12"/>
+                            <TextBlock Text="编辑(_E)"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </MenuItem.HeaderTemplate>
                 <MenuItem Header="_撤销(_U)" Command="{Binding UndoCommand}" InputGestureText="Ctrl+Z"/>
                 <MenuItem Header="_重做(_R)" Command="{Binding RedoCommand}" InputGestureText="Ctrl+Y"/>
-                <Separator/>
+                <Separator Background="{StaticResource BrushBorderSubtle}"/>
                 <MenuItem Header="_剪切(_T)" Command="{Binding CutCommand}" InputGestureText="Ctrl+X"/>
                 <MenuItem Header="_复制(_C)" Command="{Binding CopyCommand}" InputGestureText="Ctrl+C"/>
                 <MenuItem Header="_粘贴(_P)" Command="{Binding PasteCommand}" InputGestureText="Ctrl+V"/>
-                <Separator/>
+                <Separator Background="{StaticResource BrushBorderSubtle}"/>
                 <MenuItem Header="全选(_A)" Command="{Binding SelectAllCommand}" InputGestureText="Ctrl+A"/>
-                <Separator/>
-                <MenuItem Header="列模式插入(_I)" Command="{Binding ActiveEditor.ColumnInsertCommand}" CommandParameter="    " InputGestureText="Alt+Shift+I" IsEnabled="{Binding ActiveEditor.IsColumnMode}"/>
-                <MenuItem Header="列模式删除(_D)" Command="{Binding ActiveEditor.ColumnDeleteCommand}" InputGestureText="Alt+Shift+D" IsEnabled="{Binding ActiveEditor.IsColumnMode}"/>
+                <Separator Background="{StaticResource BrushBorderSubtle}"/>
+                <MenuItem Header="列模式插入(_I)"
+                          Command="{Binding ActiveEditor.ColumnInsertCommand}"
+                          CommandParameter="    "
+                          InputGestureText="Alt+Shift+I"
+                          IsEnabled="{Binding ActiveEditor.IsColumnMode}">
+                    <MenuItem.Foreground>
+                        <SolidColorBrush Color="{StaticResource FuncWarning}"/>
+                    </MenuItem.Foreground>
+                </MenuItem>
+                <MenuItem Header="列模式删除(_D)"
+                          Command="{Binding ActiveEditor.ColumnDeleteCommand}"
+                          InputGestureText="Alt+Shift+D"
+                          IsEnabled="{Binding ActiveEditor.IsColumnMode}">
+                    <MenuItem.Foreground>
+                        <SolidColorBrush Color="{StaticResource FuncError}"/>
+                    </MenuItem.Foreground>
+                </MenuItem>
             </MenuItem>
 
-            <!-- 搜索菜单 -->
-            <MenuItem Header="搜索(_S)">
+            <!-- 搜索 -->
+            <MenuItem Header="搜索(_S)" FontWeight="SemiBold">
+                <MenuItem.HeaderTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="🔍" Margin="0,0,5,0" FontSize="12"/>
+                            <TextBlock Text="搜索(_S)"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </MenuItem.HeaderTemplate>
                 <MenuItem Header="_查找(_F)..." Command="{Binding FindCommand}" InputGestureText="Ctrl+F"/>
                 <MenuItem Header="_替换(_R)..." Command="{Binding ReplaceCommand}" InputGestureText="Ctrl+H"/>
-                <Separator/>
+                <Separator Background="{StaticResource BrushBorderSubtle}"/>
                 <MenuItem Header="查找下一个(_N)" InputGestureText="F3"/>
                 <MenuItem Header="查找上一个(_P)" InputGestureText="Shift+F3"/>
             </MenuItem>
 
-            <!-- 视图菜单 -->
-            <MenuItem Header="视图(_V)">
+            <!-- 视图 -->
+            <MenuItem Header="视图(_V)" FontWeight="SemiBold">
+                <MenuItem.HeaderTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="👁" Margin="0,0,5,0" FontSize="12"/>
+                            <TextBlock Text="视图(_V)"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </MenuItem.HeaderTemplate>
                 <MenuItem Header="切换状态栏(_S)" IsCheckable="True" IsChecked="True"/>
-                <MenuItem Header="切换行号(_L)" IsCheckable="True" IsChecked="True"/>
-                <Separator/>
-                <MenuItem Header="自动换行(_W)" IsCheckable="True" IsChecked="{Binding ActiveEditor.IsWordWrapEnabled, Mode=TwoWay, FallbackValue=False}" Command="{Binding ToggleWordWrapCommand}" InputGestureText=""/>
-                <Separator/>
-                <MenuItem Header="列模式(_M)" IsCheckable="True" IsChecked="{Binding ActiveEditor.IsColumnMode, Mode=OneWay}" Command="{Binding ToggleColumnModeCommand}" InputGestureText="Alt+鼠标拖动"/>
-                <Separator/>
+                <MenuItem Header="切换行号(_L)" IsCheckable="True" IsChecked="{Binding IsLineNumberVisible, Mode=TwoWay}"/>
+                <Separator Background="{StaticResource BrushBorderSubtle}"/>
+                <MenuItem Header="自动换行(_W)" IsCheckable="True"
+                          IsChecked="{Binding ActiveEditor.IsWordWrapEnabled, Mode=TwoWay, FallbackValue=False}"
+                          Command="{Binding ToggleWordWrapCommand}" InputGestureText=""/>
+                <Separator Background="{StaticResource BrushBorderSubtle}"/>
+                <MenuItem Header="列模式(_M)" IsCheckable="True"
+                          IsChecked="{Binding ActiveEditor.IsColumnMode, Mode=OneWay}"
+                          Command="{Binding ToggleColumnModeCommand}"
+                          InputGestureText="Alt+鼠标拖动">
+                    <MenuItem.Foreground>
+                        <SolidColorBrush Color="{StaticResource AccentPrimary}"/>
+                    </MenuItem.Foreground>
+                </MenuItem>
+                <Separator Background="{StaticResource BrushBorderSubtle}"/>
                 <MenuItem Header="跳转到行号(_G)..." Command="{Binding GoToLineCommand}" InputGestureText="Ctrl+G"/>
             </MenuItem>
 
-            <!-- 编码菜单 -->
-            <MenuItem Header="编码(_E)">
+            <!-- 编码 -->
+            <MenuItem Header="编码(_E)" FontWeight="SemiBold">
+                <MenuItem.HeaderTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="🌐" Margin="0,0,5,0" FontSize="12"/>
+                            <TextBlock Text="编码(_E)"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </MenuItem.HeaderTemplate>
                 <MenuItem Header="以编码重新打开(_R)">
                     <MenuItem Header="UTF-8" Command="{Binding ReopenWithEncodingCommand}" CommandParameter="UTF-8"/>
                     <MenuItem Header="UTF-8 (BOM)" Command="{Binding ReopenWithEncodingCommand}" CommandParameter="UTF-8 (BOM)"/>
@@ -114,7 +240,7 @@
                     <MenuItem Header="GB2312" Command="{Binding SaveWithEncodingCommand}" CommandParameter="GB2312"/>
                     <MenuItem Header="GBK" Command="{Binding SaveWithEncodingCommand}" CommandParameter="GBK"/>
                 </MenuItem>
-                <Separator/>
+                <Separator Background="{StaticResource BrushBorderSubtle}"/>
                 <MenuItem Header="更改换行符(_L)">
                     <MenuItem Header="Windows (CRLF)" Command="{Binding ChangeLineEndingCommand}" CommandParameter="Windows (CRLF)"/>
                     <MenuItem Header="Unix (LF)" Command="{Binding ChangeLineEndingCommand}" CommandParameter="Unix (LF)"/>
@@ -122,10 +248,18 @@
                 </MenuItem>
             </MenuItem>
 
-            <!-- 语言菜单 -->
-            <MenuItem Header="语言(_L)">
+            <!-- 语言 -->
+            <MenuItem Header="语言(_L)" FontWeight="SemiBold">
+                <MenuItem.HeaderTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="⚡" Margin="0,0,5,0" FontSize="12"/>
+                            <TextBlock Text="语言(_L)"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </MenuItem.HeaderTemplate>
                 <MenuItem Header="普通文本" Command="{Binding ChangeLanguageCommand}" CommandParameter="Plain Text"/>
-                <Separator/>
+                <Separator Background="{StaticResource BrushBorderSubtle}"/>
                 <MenuItem Header="编程语言">
                     <MenuItem Header="C/C++" Command="{Binding ChangeLanguageCommand}" CommandParameter="C/C++"/>
                     <MenuItem Header="C#" Command="{Binding ChangeLanguageCommand}" CommandParameter="C#"/>
@@ -143,96 +277,295 @@
                 </MenuItem>
             </MenuItem>
 
-            <!-- 帮助菜单 -->
-            <MenuItem Header="帮助(_H)">
+            <!-- 帮助 -->
+            <MenuItem Header="帮助(_H)" FontWeight="SemiBold">
+                <MenuItem.HeaderTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="ℹ" Margin="0,0,5,0" FontSize="12"
+                                       Foreground="{StaticResource BrushAccentBlue}"/>
+                            <TextBlock Text="帮助(_H)"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </MenuItem.HeaderTemplate>
                 <MenuItem Header="关于(_A)"/>
             </MenuItem>
         </Menu>
 
-        <!-- 工具栏 -->
-        <ToolBarTray DockPanel.Dock="Top">
-            <ToolBar Band="0" BandIndex="0">
-                <Button Command="{Binding NewCommand}" ToolTip="新建 (Ctrl+N)">
-                    <TextBlock Text="新建"/>
+        <!-- ========== 工具栏 ========== -->
+        <ToolBarTray DockPanel.Dock="Top" Background="{StaticResource BrushBgMedium}">
+            <ToolBar Band="0" BandIndex="0"
+                     Background="{StaticResource BrushBgMedium}"
+                     Foreground="{StaticResource BrushTextSecondary}"
+                     BorderThickness="0,1,0,0"
+                     BorderBrush="{StaticResource BrushBorderSubtle}">
+                
+                <!-- 左侧：文件操作组 -->
+                <Button Style="{StaticResource ToolbarButtonStyle}" Command="{Binding NewCommand}" ToolTip="新建 (Ctrl+N)">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="📝" FontSize="11" VerticalAlignment="Center"/>
+                        <TextBlock Text="新建" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                    </StackPanel>
                 </Button>
-                <Button Command="{Binding OpenCommand}" ToolTip="打开 (Ctrl+O)">
-                    <TextBlock Text="打开"/>
+                <Button Style="{StaticResource ToolbarButtonStyle}" Command="{Binding OpenCommand}" ToolTip="打开 (Ctrl+O)">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="📂" FontSize="11" VerticalAlignment="Center"/>
+                        <TextBlock Text="打开" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                    </StackPanel>
                 </Button>
-                <Button Command="{Binding SaveCommand}" ToolTip="保存 (Ctrl+S)">
-                    <TextBlock Text="保存"/>
+                <Button Style="{StaticResource ToolbarButtonStyle}" Command="{Binding SaveCommand}" ToolTip="保存 (Ctrl+S)">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="💾" FontSize="11" VerticalAlignment="Center"/>
+                        <TextBlock Text="保存" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                    </StackPanel>
                 </Button>
-                <Separator/>
-                <Button Command="{Binding UndoCommand}" ToolTip="撤销 (Ctrl+Z)">
-                    <TextBlock Text="撤销"/>
+
+                <!-- 分隔符（竖线） -->
+                <Separator Margin="6,3"/>
+
+                <!-- 编辑操作组 -->
+                <Button Style="{StaticResource ToolbarButtonStyle}" Command="{Binding UndoCommand}" ToolTip="撤销 (Ctrl+Z)">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="↩" FontSize="12" VerticalAlignment="Center"/>
+                        <TextBlock Text="撤销" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                    </StackPanel>
                 </Button>
-                <Button Command="{Binding RedoCommand}" ToolTip="重做 (Ctrl+Y)">
-                    <TextBlock Text="重做"/>
+                <Button Style="{StaticResource ToolbarButtonStyle}" Command="{Binding RedoCommand}" ToolTip="重做 (Ctrl+Y)">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="↪" FontSize="12" VerticalAlignment="Center"/>
+                        <TextBlock Text="重做" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                    </StackPanel>
                 </Button>
+
+                <Separator Margin="6,3"/>
+
+                <!-- 查找/跳转 -->
+                <Button Style="{StaticResource ToolbarButtonStyle}" Command="{Binding FindCommand}" ToolTip="查找 (Ctrl+F)">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="🔎" FontSize="11" VerticalAlignment="Center"/>
+                        <TextBlock Text="查找" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                    </StackPanel>
+                </Button>
+                <Button Style="{StaticResource ToolbarButtonStyle}" Command="{Binding GoToLineCommand}" ToolTip="跳转到行 (Ctrl+G)">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="#️⃣" FontSize="11" VerticalAlignment="Center"/>
+                        <TextBlock Text="跳转" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                    </StackPanel>
+                </Button>
+
             </ToolBar>
         </ToolBarTray>
 
-        <!-- 状态栏 -->
-        <StatusBar DockPanel.Dock="Bottom">
-            <StatusBarItem>
-                <TextBlock Text="{Binding StatusBar.ColumnMode}" Foreground="Blue"/>
+        <!-- ========== 状态栏 - 终端风格底部信息条 ========== -->
+        <StatusBar DockPanel.Dock="Bottom"
+                   Background="#11151A"
+                   Foreground="#6E7681"
+                   BorderThickness="0,1,0,0"
+                   BorderBrush="#21262D"
+                   FontFamily="{StaticResource MonoFontFamily}"
+                   FontSize="11"
+                   Padding="0">
+
+            <!-- 左侧：状态区域 -->
+            <StatusBarItem HorizontalAlignment="Left" Padding="10,2,0,2">
+                <StackPanel Orientation="Horizontal">
+                    <!-- 列模式指示器 - 发光效果 -->
+                    <Border CornerRadius="3" Padding="6,1"
+                            Visibility="{Binding StatusBar.IsColumnModeActive, Converter={StaticResource BoolToVisibilityConverter}}"
+                            Background="#1A00D4AA">
+                        <TextBlock Text="[ COL-MODE ]"
+                                   FontWeight="Bold"
+                                   Foreground="{StaticResource BrushAccentPrimary}"/>
+                    </Border>
+                    
+                    <!-- 常规状态 -->
+                    <TextBlock Text="{Binding StatusBar.Status}" Foreground="#6E7681" Margin="12,0,0,0"/>
+                </StackPanel>
             </StatusBarItem>
-            <Separator/>
-            <StatusBarItem>
-                <TextBlock Text="{Binding StatusBar.Status}"/>
+
+            <!-- 中间：分隔 + 编码/换行/语言 -->
+            <Separator Background="#21262D"/>
+            <StatusBarItem HorizontalAlignment="Left">
+                <StackPanel Orientation="Horizontal">
+                    <Border CornerRadius="2" Padding="4,1" Background="#161B22">
+                        <TextBlock Text="{Binding StatusBar.Encoding}" Foreground="#7EE787" FontSize="10"/>
+                    </Border>
+                    <Border CornerRadius="2" Padding="4,1" Background="#161B22" Margin="14,0,0,0">
+                        <TextBlock Text="{Binding StatusBar.LineEnding}" Foreground="#79C0FF" FontSize="10"/>
+                    </Border>
+                    <Border CornerRadius="2" Padding="4,1" Background="#161B22" Margin="14,0,0,0">
+                        <TextBlock Text="{Binding StatusBar.Language}" Foreground="#FFA657" FontSize="10"/>
+                    </Border>
+                </StackPanel>
             </StatusBarItem>
-            <Separator/>
-            <StatusBarItem>
-                <TextBlock Text="{Binding StatusBar.Encoding}"/>
-            </StatusBarItem>
-            <Separator/>
-            <StatusBarItem>
-                <TextBlock Text="{Binding StatusBar.LineEnding}"/>
-            </StatusBarItem>
-            <Separator/>
-            <StatusBarItem HorizontalAlignment="Right">
-                <TextBlock Text="{Binding StatusBar.PositionText}"/>
+
+            <!-- 弹性空间，将位置推到右侧 -->
+            <StatusBarItem/>
+            
+            <!-- 右侧：光标位置 - Geek 等宽风格 -->
+            <Separator Background="#21262D"/>
+            <StatusBarItem HorizontalAlignment="Right" Padding="0,2,10,2">
+                <Border CornerRadius="3" Padding="6,1" Background="#161B22">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Ln " Foreground="#484F58"/>
+                        <TextBlock Text="{Binding StatusBar.CaretLine}" Foreground="{StaticResource BrushAccentPrimary}" FontWeight="SemiBold" Margin="6,0,0,0"/>
+                        <TextBlock Text=", Col " Foreground="#484F58" Margin="6,0,0,0"/>
+                        <TextBlock Text="{Binding StatusBar.CaretColumn}" Foreground="{StaticResource BrushAccentPrimary}" FontWeight="SemiBold" Margin="6,0,0,0"/>
+                    </StackPanel>
+                </Border>
             </StatusBarItem>
         </StatusBar>
 
-        <!-- 主编辑区域 -->
-        <Grid>
+        <!-- ========== 主编辑区容器 ========== -->
+        <Grid Background="{StaticResource BrushBgDark}">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>   <!-- 标签栏 -->
+                <RowDefinition Height="Auto"/>   <!-- 搜索面板 -->
+                <RowDefinition Height="*"/>      <!-- 编辑区 -->
             </Grid.RowDefinitions>
 
-            <!-- 标签栏 -->
+            <!-- ═══════ 标签栏 - VS Code 风格 ═══════ -->
             <TabControl Grid.Row="0"
                         ItemsSource="{Binding Documents}"
                         SelectedItem="{Binding ActiveTab, Mode=TwoWay}"
-                        Background="Transparent"
-                        BorderThickness="0">
+                        Background="{StaticResource BrushBgDark}"
+                        BorderThickness="0,0,0,1"
+                        BorderBrush="{StaticResource BrushBorderSubtle}"
+                        Padding="0"
+                        Margin="0">
+                <TabControl.ItemContainerStyle>
+                    <Style TargetType="TabItem" BasedOn="{StaticResource {x:Type TabItem}}">
+                        <Setter Property="Background" Value="{StaticResource BrushBgMedium}"/>
+                        <Setter Property="Foreground" Value="{StaticResource BrushTextSecondary}"/>
+                        <Setter Property="BorderThickness" Value="0"/>
+                        <Setter Property="Padding" Value="14,7"/>
+                        <Setter Property="FontFamily" Value="{StaticResource MonoFontFamily}"/>
+                        <Setter Property="FontSize" Value="11"/>
+                        <Setter Property="Margin" Value="0,0,1,0"/>
+                        <Setter Property="Cursor" Value="Hand"/>
+                        <Style.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="{StaticResource BrushBgDarker}"/>
+                                <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}"/>
+                                <Setter Property="BorderThickness" Value="0,0,0,2"/>
+                                <Setter Property="BorderBrush" Value="{StaticResource BrushAccentPrimary}"/>
+                            </Trigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsMouseOver" Value="True"/>
+                                    <Condition Property="IsSelected" Value="False"/>
+                                </MultiTrigger.Conditions>
+                                <Setter Property="Background" Value="{StaticResource BrushBgHover}"/>
+                                <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}"/>
+                            </MultiTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TabControl.ItemContainerStyle>
+
                 <TabControl.ItemTemplate>
                     <DataTemplate>
-                        <TextBlock Text="{Binding Title}" Padding="4,2"/>
+                        <Grid Margin="-4,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- 未保存指示器 - Cyber Orange 圆点 -->
+                            <Ellipse Grid.Column="0"
+                                     Width="6" Height="6"
+                                     Fill="{StaticResource BrushFuncWarning}"
+                                     Margin="0,0,6,0"
+                                     VerticalAlignment="Center"
+                                     Visibility="{Binding IsDirty, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
+                            <!-- 文件名标题 -->
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding Title}"
+                                       VerticalAlignment="Center"
+                                       Foreground="{Binding IsDirty, Converter={StaticResource IsDirtyToColorConverter}}"
+                                       Padding="0,1,4,1"
+                                       TextTrimming="CharacterEllipsis"
+                                       MaxWidth="180"/>
+
+                            <!-- 关闭按钮 -->
+                            <Button Grid.Column="2"
+                                    Content="✕"
+                                    Style="{StaticResource TabCloseButtonStyle}"
+                                    Command="{Binding DataContext.CloseTabCommand, RelativeSource={RelativeSource AncestorType=TabControl}}"
+                                    CommandParameter="{Binding}"/>
+                        </Grid>
                     </DataTemplate>
                 </TabControl.ItemTemplate>
+
+                <!-- 内容模板（空，编辑器在下方独立渲染） -->
                 <TabControl.ContentTemplate>
-                    <DataTemplate>
-                        <!-- 内容为空，因为编辑器在下面 -->
-                    </DataTemplate>
+                    <DataTemplate/>
                 </TabControl.ContentTemplate>
             </TabControl>
 
-            <!-- 搜索面板 -->
+            <!-- ═══════ 搜索面板 ═══════ -->
             <views:SearchPanelView Grid.Row="1"
                                   DataContext="{Binding SearchPanel}"/>
 
-            <!-- 编辑区 -->
-            <controls:SyntaxHighlightingTextBox Grid.Row="2"
-                     x:Name="EditorTextBox"
-                     PlainText="{Binding ActiveEditor.Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                     DocumentLines="{Binding ActiveEditor.Lines}"
-                     SyntaxHighlighter="{Binding ActiveEditor.CurrentHighlighter}"
-                     IsColumnModeEnabled="{Binding ActiveEditor.IsColumnMode, Mode=OneWay}"
-                     ColumnSelection="{Binding ActiveEditor.ColumnSelection, Mode=TwoWay}"
-                     IsWordWrapEnabled="{Binding ActiveEditor.IsWordWrapEnabled, Mode=OneWay}"/>
+            <!-- ═══════ 编辑区 - 内阴影下陷效果 (Notepad++ / Sublime 风格) ═══════ -->
+            <Border Grid.Row="2"
+                    x:Name="EditorAreaBorder"
+                    Background="{StaticResource BrushBgDarker}"
+                    Margin="3,2,3,3"
+                    CornerRadius="4"
+                    ClipToBounds="True">
+
+                <!-- 内阴影效果：用两层 Border 模拟 inner shadow -->
+                <Border.Effect>
+                    <DropShadowEffect ShadowDepth="3"
+                                      Direction="270"
+                                      Opacity="0.6"
+                                      BlurRadius="8"
+                                      Color="#000000"/>
+                </Border.Effect>
+
+                <Grid ClipToBounds="True">
+                    
+                    <!-- 内阴影边框层 -->
+                    <Border BorderThickness="1"
+                            BorderBrush="#252A33"
+                            CornerRadius="4"
+                            Background="Transparent">
+                        
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- 行号面板 -->
+                            <controls:LineNumberPanel Grid.Column="0"
+                                                     x:Name="LineNumberPanel"
+                                                     LineCount="{Binding ActiveEditor.LineCount, FallbackValue=1}"
+                                                     LineHeight="20"
+                                                     IsLineNumberVisible="{Binding IsLineNumberVisible, Mode=OneWay}"/>
+
+                            <!-- 语法高亮编辑器 -->
+                            <controls:SyntaxHighlightingTextBox Grid.Column="1"
+                                 x:Name="EditorTextBox"
+                                 PlainText="{Binding ActiveEditor.Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 DocumentLines="{Binding ActiveEditor.Lines}"
+                                 SyntaxHighlighter="{Binding ActiveEditor.CurrentHighlighter}"
+                                 IsColumnModeEnabled="{Binding ActiveEditor.IsColumnMode, Mode=OneWay}"
+                                 ColumnSelection="{Binding ActiveEditor.ColumnSelection, Mode=TwoWay}"
+                                 IsWordWrapEnabled="{Binding ActiveEditor.IsWordWrapEnabled, Mode=OneWay}"
+                                 Background="{StaticResource BrushBgDarker}"
+                                 Foreground="{StaticResource BrushTextPrimary}"
+                                 BorderThickness="0"
+                                 FontFamily="{StaticResource MonoFontFamily}"
+                                 FontSize="13"
+                                 CaretBrush="{StaticResource BrushAccentPrimary}"
+                                 SelectionBrush="{StaticResource BrushAccentBlueAlpha}"/>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Border>
         </Grid>
     </DockPanel>
 </Window>

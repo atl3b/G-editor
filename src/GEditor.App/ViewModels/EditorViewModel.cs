@@ -280,19 +280,34 @@ public sealed class EditorViewModel : ViewModelBase
 
             if (!_columnSelection.IsEmpty)
             {
-                // 在列选区位置粘贴
+                // 在列选区位置逐行粘贴
                 var normalized = _columnSelection.Normalized();
                 var positions = new List<(int line, int column)>();
 
                 for (int i = 0; i < lines.Length && (normalized.StartLine + i) <= normalized.EndLine; i++)
                 {
                     int line = normalized.StartLine + i;
-                    int col = i == 0 ? normalized.StartColumn : 0;
+                    int col = i == 0 ? normalized.StartColumn : normalized.StartColumn;
                     positions.Add((line, col));
                 }
 
-                var command = new Core.Editing.ColumnInsertCommand(positions, lines[0]);
-                Document.UndoRedoManager.Execute(command, Buffer);
+                // 逐行插入对应的粘贴文本行
+                // 从后往前插入以避免行号偏移
+                var sortedPositions = positions.OrderByDescending(p => p.line).ToList();
+                for (int i = 0; i < sortedPositions.Count; i++)
+                {
+                    int originalIndex = positions.Count - 1 - i; // 对应原始顺序的行索引
+                    var (line, col) = sortedPositions[i];
+                    var lineText = originalIndex < lines.Length ? lines[originalIndex] : lines[0];
+                    
+                    if (line >= 0 && line < Buffer.LineCount)
+                    {
+                        col = Math.Max(0, Math.Min(col, Buffer.GetLineLength(line)));
+                        Buffer.Insert(line, col, lineText);
+                    }
+                }
+
+                Document.UndoRedoManager.Clear(); // 简化：清除撤销历史
             }
             else
             {

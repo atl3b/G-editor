@@ -27,6 +27,7 @@ public sealed class MainWindowViewModel : ViewModelBase
     private EditorViewModel? _activeEditor;
     private SearchPanelViewModel? _searchPanel;
     private string _windowTitle = "G-editor";
+    private bool _isLineNumberVisible = true;
 
     public MainWindowViewModel(
         IDocumentManager documentManager,
@@ -117,6 +118,15 @@ public sealed class MainWindowViewModel : ViewModelBase
         private set => SetProperty(ref _windowTitle, value);
     }
 
+    /// <summary>
+    /// 是否显示行号
+    /// </summary>
+    public bool IsLineNumberVisible
+    {
+        get => _isLineNumberVisible;
+        set => SetProperty(ref _isLineNumberVisible, value);
+    }
+
     #endregion
 
     #region 命令
@@ -158,6 +168,9 @@ public sealed class MainWindowViewModel : ViewModelBase
 
     // 跳转到行号命令
     public ICommand GoToLineCommand { get; private set; } = null!;
+
+    // 标签关闭命令（带参数）
+    public ICommand CloseTabCommand { get; private set; } = null!;
 
     // 最近文件
     public ObservableCollection<string> RecentFiles { get; } = new();
@@ -209,6 +222,9 @@ public sealed class MainWindowViewModel : ViewModelBase
 
         // 跳转到行号命令
         GoToLineCommand = new RelayCommand(GoToLine, () => ActiveEditor != null);
+
+        // 标签关闭命令（带参数）
+        CloseTabCommand = new RelayCommand<DocumentTabViewModel>(CloseTab);
 
         // 最近文件命令
         OpenRecentFileCommand = new RelayCommand<string>(OpenRecentFile);
@@ -312,8 +328,14 @@ public sealed class MainWindowViewModel : ViewModelBase
     private void CloseActiveDocument()
     {
         if (ActiveTab == null) return;
+        CloseTab(ActiveTab);
+    }
 
-        var document = ActiveTab.Document;
+    private void CloseTab(DocumentTabViewModel? tab)
+    {
+        if (tab == null) return;
+
+        var document = tab.Document;
 
         if (document.IsDirty)
         {
@@ -335,14 +357,13 @@ public sealed class MainWindowViewModel : ViewModelBase
             }
         }
 
-        var tabToClose = ActiveTab;
-        var index = Documents.IndexOf(tabToClose);
-        Documents.Remove(tabToClose);
-        tabToClose.Cleanup();
+        var index = Documents.IndexOf(tab);
+        Documents.Remove(tab);
+        tab.Cleanup();
 
         // 切换到相邻标签
         if (Documents.Count > 0)
-            ActiveTab = Documents[Math.Max(0, index - 1)];
+            ActiveTab = Documents[Math.Max(0, Math.Min(index - 1, Documents.Count - 1))];
         else
             NewDocument(); // 如果没有文档了，创建新文档
     }
@@ -601,7 +622,8 @@ public sealed class MainWindowViewModel : ViewModelBase
 
         ActiveEditor.IsColumnMode = !ActiveEditor.IsColumnMode;
         StatusBar.ColumnMode = ActiveEditor.ColumnModeText;
-        StatusBar.Status = ActiveEditor.IsColumnMode ? "列模式已启用 (Alt+鼠标拖动)" : "列模式已关闭";
+        StatusBar.IsColumnModeActive = ActiveEditor.IsColumnMode;
+        StatusBar.Status = ActiveEditor.IsColumnMode ? "列模式已启用 (Alt+鼠标拖动选择)" : "列模式已关闭";
     }
 
     #endregion

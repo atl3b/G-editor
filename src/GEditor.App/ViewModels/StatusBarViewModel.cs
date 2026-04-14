@@ -12,6 +12,7 @@ public sealed class StatusBarViewModel : ViewModelBase
     private string _language = "Plain Text";
     private string _status = "就绪";
     private string _columnMode = string.Empty;
+    private bool _isColumnModeActive;
 
     public string Encoding
     {
@@ -53,6 +54,15 @@ public sealed class StatusBarViewModel : ViewModelBase
     {
         get => _columnMode;
         set => SetProperty(ref _columnMode, value);
+    }
+
+    /// <summary>
+    /// 列模式是否激活（用于状态栏高亮）
+    /// </summary>
+    public bool IsColumnModeActive
+    {
+        get => _isColumnModeActive;
+        set => SetProperty(ref _isColumnModeActive, value);
     }
 
     public string PositionText => $"Ln {_line}, Col {_column}";
