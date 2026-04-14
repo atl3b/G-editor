@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:GEditor.App.ViewModels"
         xmlns:views="clr-namespace:GEditor.App.Views"
+        xmlns:controls="clr-namespace:GEditor.App.Controls"
         mc:Ignorable="d"
         Title="{Binding WindowTitle}"
         Width="1024"
@@ -196,18 +197,11 @@
                                   DataContext="{Binding SearchPanel}"/>
 
             <!-- 编辑区 -->
-            <TextBox Grid.Row="2"
+            <controls:SyntaxHighlightingTextBox Grid.Row="2"
                      x:Name="EditorTextBox"
-                     AcceptsReturn="True"
-                     AcceptsTab="True"
-                     TextWrapping="NoWrap"
-                     VerticalScrollBarVisibility="Auto"
-                     HorizontalScrollBarVisibility="Auto"
-                     FontFamily="Consolas"
-                     FontSize="14"
-                     Padding="5"
-                     BorderThickness="0"
-                     Text="{Binding ActiveEditor.Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                     PlainText="{Binding ActiveEditor.Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                     DocumentLines="{Binding ActiveEditor.Lines}"
+                     SyntaxHighlighter="{Binding ActiveEditor.CurrentHighlighter}"/>
         </Grid>
     </DockPanel>
 </Window>

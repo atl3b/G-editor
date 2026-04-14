@@ -95,6 +95,11 @@ public sealed class EditorViewModel : ViewModelBase
 
     public bool HasHighlighting => _currentHighlighter != null && _currentHighlighter.LanguageName != "Plain Text";
 
+    /// <summary>
+    /// 当前语法高亮器
+    /// </summary>
+    public ISyntaxHighlighter? CurrentHighlighter => _currentHighlighter;
+
     public bool IsDirty => _document.IsDirty;
 
     /// <summary>
