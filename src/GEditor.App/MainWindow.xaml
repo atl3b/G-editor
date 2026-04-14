@@ -26,6 +26,10 @@
         <KeyBinding Key="H" Modifiers="Ctrl" Command="{Binding ReplaceCommand}"/>
         <KeyBinding Key="F3" Command="{Binding FindNextCommand}"/>
         <KeyBinding Key="F3" Modifiers="Shift" Command="{Binding FindPreviousCommand}"/>
+        <KeyBinding Key="M" Modifiers="Alt" Command="{Binding ToggleColumnModeCommand}"/>
+        <KeyBinding Key="I" Modifiers="Alt+Shift" Command="{Binding ActiveEditor.ColumnInsertCommand}" CommandParameter="    "/>
+        <KeyBinding Key="D" Modifiers="Alt+Shift" Command="{Binding ActiveEditor.ColumnDeleteCommand}"/>
+        <KeyBinding Key="G" Modifiers="Ctrl" Command="{Binding GoToLineCommand}"/>
     </Window.InputBindings>
 
     <DockPanel>
@@ -35,6 +39,17 @@
             <MenuItem Header="_文件">
                 <MenuItem Header="_新建(_N)" Command="{Binding NewCommand}" InputGestureText="Ctrl+N"/>
                 <MenuItem Header="_打开(_O)..." Command="{Binding OpenCommand}" InputGestureText="Ctrl+O"/>
+                <Separator/>
+                <!-- 最近打开的文件 -->
+                <MenuItem Header="最近文件" ItemsSource="{Binding RecentFiles}">
+                    <MenuItem.ItemContainerStyle>
+                        <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                            <Setter Property="Header" Value="{Binding}"/>
+                            <Setter Property="Command" Value="{Binding DataContext.OpenRecentFileCommand, RelativeSource={RelativeSource AncestorType=Menu}}"/>
+                            <Setter Property="CommandParameter" Value="{Binding}"/>
+                        </Style>
+                    </MenuItem.ItemContainerStyle>
+                </MenuItem>
                 <Separator/>
                 <MenuItem Header="_保存(_S)" Command="{Binding SaveCommand}" InputGestureText="Ctrl+S"/>
                 <MenuItem Header="另存为(_A)..." Command="{Binding SaveAsCommand}" InputGestureText="Ctrl+Shift+S"/>
@@ -54,6 +69,9 @@
                 <MenuItem Header="_粘贴(_P)" Command="{Binding PasteCommand}" InputGestureText="Ctrl+V"/>
                 <Separator/>
                 <MenuItem Header="全选(_A)" Command="{Binding SelectAllCommand}" InputGestureText="Ctrl+A"/>
+                <Separator/>
+                <MenuItem Header="列模式插入(_I)" Command="{Binding ActiveEditor.ColumnInsertCommand}" CommandParameter="    " InputGestureText="Alt+Shift+I" IsEnabled="{Binding ActiveEditor.IsColumnMode}"/>
+                <MenuItem Header="列模式删除(_D)" Command="{Binding ActiveEditor.ColumnDeleteCommand}" InputGestureText="Alt+Shift+D" IsEnabled="{Binding ActiveEditor.IsColumnMode}"/>
             </MenuItem>
 
             <!-- 搜索菜单 -->
@@ -69,6 +87,12 @@
             <MenuItem Header="视图(_V)">
                 <MenuItem Header="切换状态栏(_S)" IsCheckable="True" IsChecked="True"/>
                 <MenuItem Header="切换行号(_L)" IsCheckable="True" IsChecked="True"/>
+                <Separator/>
+                <MenuItem Header="自动换行(_W)" IsCheckable="True" IsChecked="{Binding ActiveEditor.IsWordWrapEnabled, Mode=TwoWay, FallbackValue=False}" Command="{Binding ToggleWordWrapCommand}" InputGestureText=""/>
+                <Separator/>
+                <MenuItem Header="列模式(_M)" IsCheckable="True" IsChecked="{Binding ActiveEditor.IsColumnMode, Mode=OneWay}" Command="{Binding ToggleColumnModeCommand}" InputGestureText="Alt+鼠标拖动"/>
+                <Separator/>
+                <MenuItem Header="跳转到行号(_G)..." Command="{Binding GoToLineCommand}" InputGestureText="Ctrl+G"/>
             </MenuItem>
 
             <!-- 编码菜单 -->
@@ -150,6 +174,10 @@
         <!-- 状态栏 -->
         <StatusBar DockPanel.Dock="Bottom">
             <StatusBarItem>
+                <TextBlock Text="{Binding StatusBar.ColumnMode}" Foreground="Blue"/>
+            </StatusBarItem>
+            <Separator/>
+            <StatusBarItem>
                 <TextBlock Text="{Binding StatusBar.Status}"/>
             </StatusBarItem>
             <Separator/>
@@ -201,7 +229,10 @@
                      x:Name="EditorTextBox"
                      PlainText="{Binding ActiveEditor.Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                      DocumentLines="{Binding ActiveEditor.Lines}"
-                     SyntaxHighlighter="{Binding ActiveEditor.CurrentHighlighter}"/>
+                     SyntaxHighlighter="{Binding ActiveEditor.CurrentHighlighter}"
+                     IsColumnModeEnabled="{Binding ActiveEditor.IsColumnMode, Mode=OneWay}"
+                     ColumnSelection="{Binding ActiveEditor.ColumnSelection, Mode=TwoWay}"
+                     IsWordWrapEnabled="{Binding ActiveEditor.IsWordWrapEnabled, Mode=OneWay}"/>
         </Grid>
     </DockPanel>
 </Window>

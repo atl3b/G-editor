@@ -11,6 +11,7 @@ public sealed class StatusBarViewModel : ViewModelBase
     private int _column = 1;
     private string _language = "Plain Text";
     private string _status = "就绪";
+    private string _columnMode = string.Empty;
 
     public string Encoding
     {
@@ -46,6 +47,12 @@ public sealed class StatusBarViewModel : ViewModelBase
     {
         get => _status;
         set => SetProperty(ref _status, value);
+    }
+
+    public string ColumnMode
+    {
+        get => _columnMode;
+        set => SetProperty(ref _columnMode, value);
     }
 
     public string PositionText => $"Ln {_line}, Col {_column}";

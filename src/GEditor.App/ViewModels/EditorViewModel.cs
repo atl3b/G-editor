@@ -1,7 +1,10 @@
 using GEditor.Core.Buffer;
 using GEditor.Core.Documents;
+using GEditor.Core.Editing;
+using GEditor.Core.Selection;
 using GEditor.Syntax;
 using System.IO;
+using System.Windows.Input;
 
 namespace GEditor.App.ViewModels;
 
@@ -18,6 +21,13 @@ public sealed class EditorViewModel : ViewModelBase
     private string _currentLanguage = "Plain Text";
     private ISyntaxHighlighter? _currentHighlighter;
 
+    // 列模式相关属性
+    private bool _isColumnMode;
+    private ColumnSelection _columnSelection;
+
+    // 自动换行
+    private bool _isWordWrapEnabled;
+
     public EditorViewModel(Document document, ISyntaxHighlighterRegistry? registry = null)
     {
         _document = document;
@@ -33,6 +43,9 @@ public sealed class EditorViewModel : ViewModelBase
                 _currentLanguage = _currentHighlighter.LanguageName;
             }
         }
+
+        // 初始化列模式命令
+        InitializeColumnModeCommands();
     }
 
     public Document Document => _document;
@@ -101,6 +114,196 @@ public sealed class EditorViewModel : ViewModelBase
     public ISyntaxHighlighter? CurrentHighlighter => _currentHighlighter;
 
     public bool IsDirty => _document.IsDirty;
+
+    #region 列模式属性和命令
+
+    /// <summary>
+    /// 是否处于列模式
+    /// </summary>
+    public bool IsColumnMode
+    {
+        get => _isColumnMode;
+        set
+        {
+            if (SetProperty(ref _isColumnMode, value))
+            {
+                OnPropertyChanged(nameof(ColumnModeText));
+            }
+        }
+    }
+
+    /// <summary>
+    /// 列模式状态显示文本
+    /// </summary>
+    public string ColumnModeText => _isColumnMode ? "[列模式]" : string.Empty;
+
+    /// <summary>
+    /// 当前列选区
+    /// </summary>
+    public ColumnSelection ColumnSelection
+    {
+        get => _columnSelection;
+        set => SetProperty(ref _columnSelection, value);
+    }
+
+    /// <summary>
+    /// 是否启用自动换行
+    /// </summary>
+    public bool IsWordWrapEnabled
+    {
+        get => _isWordWrapEnabled;
+        set => SetProperty(ref _isWordWrapEnabled, value);
+    }
+
+    /// <summary>
+    /// 列模式切换命令
+    /// </summary>
+    public ICommand ToggleColumnModeCommand { get; private set; } = null!;
+
+    /// <summary>
+    /// 列模式插入命令
+    /// </summary>
+    public ICommand ColumnInsertCommand { get; private set; } = null!;
+
+    /// <summary>
+    /// 列模式删除命令
+    /// </summary>
+    public ICommand ColumnDeleteCommand { get; private set; } = null!;
+
+    /// <summary>
+    /// 列模式复制命令
+    /// </summary>
+    public ICommand ColumnCopyCommand { get; private set; } = null!;
+
+    /// <summary>
+    /// 列模式剪切命令
+    /// </summary>
+    public ICommand ColumnCutCommand { get; private set; } = null!;
+
+    /// <summary>
+    /// 列模式粘贴命令
+    /// </summary>
+    public ICommand ColumnPasteCommand { get; private set; } = null!;
+
+    private void InitializeColumnModeCommands()
+    {
+        ToggleColumnModeCommand = new RelayCommand(() =>
+        {
+            IsColumnMode = !IsColumnMode;
+            if (!IsColumnMode)
+            {
+                ColumnSelection = ColumnSelection.Empty;
+            }
+        });
+
+        ColumnInsertCommand = new RelayCommand<string>(text =>
+        {
+            if (string.IsNullOrEmpty(text) || Document == null)
+                return;
+
+            if (_isColumnMode && !_columnSelection.IsEmpty)
+            {
+                // 在列选区插入
+                var normalized = _columnSelection.Normalized();
+                var positions = new List<(int line, int column)>();
+
+                for (int line = normalized.StartLine; line <= normalized.EndLine; line++)
+                {
+                    int col = line == normalized.StartLine
+                        ? normalized.StartColumn
+                        : 0;
+                    positions.Add((line, col));
+                }
+
+                var command = new Core.Editing.ColumnInsertCommand(positions, text);
+                Document.UndoRedoManager.Execute(command, Buffer);
+            }
+            else
+            {
+                // 在当前光标位置插入
+                // 使用0-based坐标
+                var command = new InsertTextCommand(_caretLine - 1, _caretColumn - 1, text);
+                Document.UndoRedoManager.Execute(command, Buffer);
+            }
+        });
+
+        ColumnDeleteCommand = new RelayCommand(() =>
+        {
+            if (Document == null)
+                return;
+
+            if (_isColumnMode && !_columnSelection.IsEmpty)
+            {
+                var command = new Core.Editing.ColumnDeleteCommand(_columnSelection);
+                Document.UndoRedoManager.Execute(command, Buffer);
+                ColumnSelection = ColumnSelection.Empty;
+            }
+        });
+
+        ColumnCopyCommand = new RelayCommand(() =>
+        {
+            if (!_isColumnMode || _columnSelection.IsEmpty || Document == null)
+                return;
+
+            var lines = Buffer.GetColumnText(_columnSelection);
+            var text = string.Join(Environment.NewLine, lines);
+            System.Windows.Clipboard.SetText(text);
+        });
+
+        ColumnCutCommand = new RelayCommand(() =>
+        {
+            if (!_isColumnMode || _columnSelection.IsEmpty || Document == null)
+                return;
+
+            var lines = Buffer.GetColumnText(_columnSelection);
+            var text = string.Join(Environment.NewLine, lines);
+            System.Windows.Clipboard.SetText(text);
+
+            var command = new Core.Editing.ColumnDeleteCommand(_columnSelection);
+            Document.UndoRedoManager.Execute(command, Buffer);
+            ColumnSelection = ColumnSelection.Empty;
+        });
+
+        ColumnPasteCommand = new RelayCommand(() =>
+        {
+            if (!_isColumnMode || Document == null)
+                return;
+
+            if (!System.Windows.Clipboard.ContainsText())
+                return;
+
+            var text = System.Windows.Clipboard.GetText();
+            if (string.IsNullOrEmpty(text))
+                return;
+
+            var lines = text.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+
+            if (!_columnSelection.IsEmpty)
+            {
+                // 在列选区位置粘贴
+                var normalized = _columnSelection.Normalized();
+                var positions = new List<(int line, int column)>();
+
+                for (int i = 0; i < lines.Length && (normalized.StartLine + i) <= normalized.EndLine; i++)
+                {
+                    int line = normalized.StartLine + i;
+                    int col = i == 0 ? normalized.StartColumn : 0;
+                    positions.Add((line, col));
+                }
+
+                var command = new Core.Editing.ColumnInsertCommand(positions, lines[0]);
+                Document.UndoRedoManager.Execute(command, Buffer);
+            }
+            else
+            {
+                // 在当前光标位置粘贴
+                var command = new InsertTextCommand(_caretLine - 1, _caretColumn - 1, text);
+                Document.UndoRedoManager.Execute(command, Buffer);
+            }
+        });
+    }
+
+    #endregion
 
     /// <summary>
     /// 设置当前语言高亮器

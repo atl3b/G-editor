@@ -1,4 +1,5 @@
 using GEditor.Core.Documents;
+using GEditor.Core.Selection;
 
 namespace GEditor.Core.Buffer;
 
@@ -211,4 +212,120 @@ public sealed class EditorBuffer
         }
         return count;
     }
+
+    #region 列模式操作
+
+    /// <summary>
+    /// 获取矩形区域文本（按行返回，每行仅包含选中部分）
+    /// </summary>
+    /// <param name="selection">列选区（0-based坐标）</param>
+    /// <returns>每行选中部分的文本数组</returns>
+    public string[] GetColumnText(ColumnSelection selection)
+    {
+        var normalized = selection.Normalized();
+        var lineRanges = normalized.GetLineRanges(_lines.AsReadOnly());
+        var result = new string[lineRanges.Count];
+
+        for (int i = 0; i < lineRanges.Count; i++)
+        {
+            var range = lineRanges[i];
+            result[i] = range.IsEmpty
+                ? string.Empty
+                : _lines[range.Line].Substring(range.StartColumn, range.Length);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// 在多行指定列位置同时插入文本（不触发撤销）
+    /// </summary>
+    /// <param name="positions">插入位置列表 (行索引, 列索引)，0-based坐标</param>
+    /// <param name="text">要插入的文本</param>
+    public void InsertAtColumns(IReadOnlyList<(int line, int column)> positions, string text)
+    {
+        if (string.IsNullOrEmpty(text) || positions.Count == 0)
+            return;
+
+        // 按行号排序，从后往前插入以避免行号偏移问题
+        var sortedPositions = positions
+            .OrderByDescending(p => p.line)
+            .ThenByDescending(p => p.column)
+            .ToList();
+
+        int minLine = int.MaxValue;
+        int maxLine = int.MinValue;
+
+        foreach (var (line, column) in sortedPositions)
+        {
+            if (line < 0 || line >= _lines.Count)
+                continue;
+
+            minLine = Math.Min(minLine, line);
+            maxLine = Math.Max(maxLine, line);
+
+            int col = Math.Max(0, Math.Min(column, _lines[line].Length));
+            _lines[line] = _lines[line].Insert(col, text);
+        }
+
+        if (minLine <= maxLine)
+        {
+            OnChanged(minLine, maxLine, "column-insert");
+        }
+    }
+
+    /// <summary>
+    /// 从多行指定范围删除文本（不触发撤销）
+    /// </summary>
+    /// <param name="ranges">删除范围列表 (行索引, 起始列, 长度)</param>
+    /// <returns>被删除的文本列表（按行顺序）</returns>
+    public string[] DeleteAtColumns(IReadOnlyList<(int line, int column, int length)> ranges)
+    {
+        if (ranges.Count == 0)
+            return Array.Empty<string>();
+
+        // 按行号排序，从后往前删除以避免偏移问题
+        var sortedRanges = ranges
+            .OrderByDescending(r => r.line)
+            .ThenByDescending(r => r.column)
+            .ToList();
+
+        var result = new List<string>();
+
+        int minLine = int.MaxValue;
+        int maxLine = int.MinValue;
+
+        foreach (var (line, column, length) in sortedRanges)
+        {
+            if (line < 0 || line >= _lines.Count || length <= 0)
+                continue;
+
+            minLine = Math.Min(minLine, line);
+            maxLine = Math.Max(maxLine, line);
+
+            int startCol = Math.Max(0, column);
+            int endCol = Math.Min(startCol + length, _lines[line].Length);
+
+            if (startCol >= endCol)
+                continue;
+
+            string deletedText = _lines[line].Substring(startCol, endCol - startCol);
+            result.Add(deletedText);
+
+            string before = _lines[line][..startCol];
+            string after = _lines[line][endCol..];
+            _lines[line] = before + after;
+        }
+
+        if (result.Count > 0 && minLine <= maxLine)
+        {
+            OnChanged(minLine, maxLine, "column-delete");
+        }
+
+        // 返回结果时需要反转顺序以匹配原始顺序
+        result.Reverse();
+        return result.ToArray();
+    }
+
+    #endregion
 }

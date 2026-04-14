@@ -1,4 +1,5 @@
 using GEditor.App.Services;
+using GEditor.App.Views;
 using GEditor.Core.Documents;
 using GEditor.Core.IO;
 using GEditor.Core.Management;
@@ -149,6 +150,23 @@ public sealed class MainWindowViewModel : ViewModelBase
     // 语言切换命令
     public ICommand ChangeLanguageCommand { get; private set; } = null!;
 
+    // 列模式命令
+    public ICommand ToggleColumnModeCommand { get; private set; } = null!;
+
+    // 自动换行命令
+    public ICommand ToggleWordWrapCommand { get; private set; } = null!;
+
+    // 跳转到行号命令
+    public ICommand GoToLineCommand { get; private set; } = null!;
+
+    // 最近文件
+    public ObservableCollection<string> RecentFiles { get; } = new();
+    public ICommand OpenRecentFileCommand { get; private set; } = null!;
+    private const int MaxRecentFiles = 10;
+    private static readonly string RecentFilesPath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+        "GEditor", "recentfiles.txt");
+
     private void InitializeCommands()
     {
         // 文件命令
@@ -182,6 +200,21 @@ public sealed class MainWindowViewModel : ViewModelBase
 
         // 语言切换命令
         ChangeLanguageCommand = new RelayCommand<string>(ChangeLanguage);
+
+        // 列模式命令
+        ToggleColumnModeCommand = new RelayCommand(ToggleColumnMode, () => ActiveEditor != null);
+
+        // 自动换行命令
+        ToggleWordWrapCommand = new RelayCommand(ToggleWordWrap, () => ActiveEditor != null);
+
+        // 跳转到行号命令
+        GoToLineCommand = new RelayCommand(GoToLine, () => ActiveEditor != null);
+
+        // 最近文件命令
+        OpenRecentFileCommand = new RelayCommand<string>(OpenRecentFile);
+
+        // 加载最近文件列表
+        LoadRecentFiles();
     }
 
     #endregion
@@ -216,6 +249,7 @@ public sealed class MainWindowViewModel : ViewModelBase
             var tab = new DocumentTabViewModel(document);
             Documents.Add(tab);
             ActiveTab = tab;
+            AddRecentFile(filePath); // 添加到最近文件
         }
         catch (Exception ex)
         {
@@ -555,6 +589,145 @@ public sealed class MainWindowViewModel : ViewModelBase
             StatusBar.Language = languageName;
         }
         StatusBar.Status = $"语言已更改为 {languageName}";
+    }
+
+    #endregion
+
+    #region 列模式操作
+
+    private void ToggleColumnMode()
+    {
+        if (ActiveEditor == null) return;
+
+        ActiveEditor.IsColumnMode = !ActiveEditor.IsColumnMode;
+        StatusBar.ColumnMode = ActiveEditor.ColumnModeText;
+        StatusBar.Status = ActiveEditor.IsColumnMode ? "列模式已启用 (Alt+鼠标拖动)" : "列模式已关闭";
+    }
+
+    #endregion
+
+    #region 自动换行操作
+
+    private void ToggleWordWrap()
+    {
+        if (ActiveEditor == null) return;
+        ActiveEditor.IsWordWrapEnabled = !ActiveEditor.IsWordWrapEnabled;
+        StatusBar.Status = ActiveEditor.IsWordWrapEnabled ? "自动换行已开启" : "自动换行已关闭";
+    }
+
+    #endregion
+
+    #region 跳转到行号操作
+
+    private void GoToLine()
+    {
+        if (ActiveTab == null || ActiveEditor == null) return;
+
+        var dialog = new GoToLineDialog
+        {
+            TotalLines = ActiveEditor.LineCount,
+            Owner = Application.Current.MainWindow
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            int targetLine = dialog.TargetLine - 1; // Convert to 0-based
+            if (targetLine >= 0 && targetLine < ActiveEditor.LineCount)
+            {
+                // 通过状态栏更新光标位置
+                UpdateCaretPosition(targetLine + 1, 1);
+                StatusBar.Status = $"已跳转到第 {targetLine + 1} 行";
+            }
+        }
+    }
+
+    #endregion
+
+    #region 最近文件操作
+
+    private void AddRecentFile(string filePath)
+    {
+        if (string.IsNullOrEmpty(filePath)) return;
+
+        // 移除已存在的相同路径
+        RecentFiles.Remove(filePath);
+
+        // 添加到最前面
+        RecentFiles.Insert(0, filePath);
+
+        // 限制最大数量
+        while (RecentFiles.Count > MaxRecentFiles)
+            RecentFiles.RemoveAt(RecentFiles.Count - 1);
+
+        SaveRecentFiles();
+    }
+
+    private async void OpenRecentFile(string? filePath)
+    {
+        if (string.IsNullOrEmpty(filePath)) return;
+        if (!File.Exists(filePath))
+        {
+            MessageBox.Show($"文件不存在:\n{filePath}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            RecentFiles.Remove(filePath);
+            SaveRecentFiles();
+            return;
+        }
+
+        try
+        {
+            var existingTab = Documents.FirstOrDefault(t => t.Document.FilePath == filePath);
+            if (existingTab != null)
+            {
+                ActiveTab = existingTab;
+                return;
+            }
+
+            var document = await _documentManager.OpenAsync(filePath);
+            var tab = new DocumentTabViewModel(document);
+            Documents.Add(tab);
+            ActiveTab = tab;
+            StatusBar.Status = $"已打开: {Path.GetFileName(filePath)}";
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"无法打开文件: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void LoadRecentFiles()
+    {
+        try
+        {
+            if (File.Exists(RecentFilesPath))
+            {
+                var lines = File.ReadAllLines(RecentFilesPath);
+                foreach (var line in lines)
+                {
+                    if (!string.IsNullOrWhiteSpace(line) && File.Exists(line.Trim()))
+                        RecentFiles.Add(line.Trim());
+                }
+            }
+        }
+        catch
+        {
+            // 忽略加载错误
+        }
+    }
+
+    private void SaveRecentFiles()
+    {
+        try
+        {
+            var dir = Path.GetDirectoryName(RecentFilesPath);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                Directory.CreateDirectory(dir);
+
+            File.WriteAllLines(RecentFilesPath, RecentFiles.Take(MaxRecentFiles));
+        }
+        catch
+        {
+            // 忽略保存错误
+        }
     }
 
     #endregion
