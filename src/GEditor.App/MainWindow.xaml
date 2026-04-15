@@ -608,23 +608,19 @@
                                   DataContext="{Binding SearchPanel}"/>
 
             <!-- ═══════ 编辑区 - 内阴影下陷效果 (Notepad++ / Sublime / VS Code 风格) ═══════ -->
+            <!-- 注意：不使用 DropShadowEffect，因为它与 ClipToBounds + CornerRadius 组合
+                 会导致 WPF 渲染管线将内容错误裁剪为倒三角形（位图 Effect 与矢量裁剪冲突）。
+                 改用纯 Border 叠加实现内嵌视觉效果。 -->
             <Border Grid.Row="2"
                     x:Name="EditorAreaBorder"
                     Background="{StaticResource BrushBgDarker}"
                     Margin="4,3,4,4"
                     CornerRadius="6"
-                    ClipToBounds="True">
+                    ClipToBounds="True"
+                    BorderThickness="1"
+                    BorderBrush="{StaticResource BrushBorderSubtle}">
 
-                <!-- 外层 DropShadowEffect - 创造下陷感 -->
-                <Border.Effect>
-                    <DropShadowEffect ShadowDepth="4"
-                                      Direction="270"
-                                      Opacity="0.55"
-                                      BlurRadius="10"
-                                      Color="#000000"/>
-                </Border.Effect>
-
-                <!-- 内层 Grid 用于裁剪内阴影区域 -->
+                <!-- 内层 Grid 用于裁剪圆角区域 -->
                 <Grid ClipToBounds="True">
                     
                     <!-- 内边框层 - 精细描边 -->

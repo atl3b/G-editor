@@ -163,22 +163,82 @@
 
         <!-- ======================== 全局控件样式 ======================== -->
 
-        <!-- ===== MenuItem 样式 - Premium Dark Menu ===== -->
+        <!-- ===== Menu 控件样式 - 覆盖系统默认白底 ===== -->
+        <Style TargetType="Menu">
+            <Setter Property="Background" Value="{StaticResource BrushBgMedium}"/>
+            <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}"/>
+            <Setter Property="FontFamily" Value="{StaticResource UiFontFamily}"/>
+            <Setter Property="FontSize" Value="{StaticResource FontSizeBase}"/>
+        </Style>
+
+        <!-- ===== MenuItem 样式 - Premium Dark Menu (完整ControlTemplate覆盖Windows默认白底) ===== -->
         <Style TargetType="MenuItem">
             <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}"/>
             <Setter Property="FontFamily" Value="{StaticResource UiFontFamily}"/>
             <Setter Property="FontSize" Value="{StaticResource FontSizeBase}"/>
             <Setter Property="Padding" Value="12,6"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Style.Triggers>
-                <Trigger Property="IsHighlighted" Value="True">
-                    <Setter Property="Background" Value="{StaticResource BrushBgHover}"/>
-                    <Setter Property="Foreground" Value="{StaticResource BrushTextAccent}"/>
-                </Trigger>
-                <Trigger Property="IsEnabled" Value="False">
-                    <Setter Property="Foreground" Value="{StaticResource BrushTextMuted}"/>
-                </Trigger>
-            </Style.Triggers>
+            <Setter Property="OverridesDefaultStyle" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="MenuItem">
+                        <!-- Grid 容器：ControlTemplate 只能有一个直接子元素 -->
+                        <Grid>
+                        <!-- 根 StackPanel：关键！Orientation=Horizontal 使顶级菜单项水平排列 -->
+                        <StackPanel Orientation="Horizontal"
+                                    Background="{TemplateBinding Background}"
+                                    SnapsToDevicePixels="True">
+                            <!-- Header 内容区 -->
+                            <ContentPresenter ContentSource="Header"
+                                              Margin="{TemplateBinding Padding}"
+                                              RecognizesAccessKey="True"
+                                              VerticalAlignment="Center"/>
+                            <!-- 下拉箭头（有子菜单时显示） -->
+                            <Path x:Name="ArrowPanel"
+                                  Margin="4,0,0,0"
+                                  Data="M0,0 L4,4 L8,0"
+                                  Fill="{StaticResource BrushTextSecondary}"
+                                  VerticalAlignment="Center"
+                                  Visibility="Collapsed"
+                                  Stretch="Uniform"/>
+                        </StackPanel>
+                        <!-- 下拉弹出菜单 - 暗色背景覆盖系统白色默认 -->
+                        <Popup x:Name="PART_Popup"
+                               IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}"
+                               AllowsTransparency="False"
+                               Focusable="False"
+                               PopupAnimation="Fade">
+                            <Border Background="{StaticResource BrushBgDark}"
+                                    BorderThickness="1"
+                                    BorderBrush="{StaticResource BrushBorderMedium}"
+                                    CornerRadius="6"
+                                    Padding="4"
+                                    SnapsToDevicePixels="True"
+                                    MinWidth="180">
+                                <StackPanel IsItemsHost="True"
+                                            KeyboardNavigation.DirectionalNavigation="Cycle"
+                                            Background="Transparent"/>
+                            </Border>
+                        </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <!-- 有子菜单项 → 显示下拉箭头 -->
+                            <Trigger Property="HasItems" Value="True">
+                                <Setter TargetName="ArrowPanel" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                            <!-- 高亮态 -->
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter Property="Background" Value="{StaticResource BrushBgHover}"/>
+                                <Setter Property="Foreground" Value="{StaticResource BrushTextAccent}"/>
+                            </Trigger>
+                            <!-- 禁用态 -->
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="{StaticResource BrushTextMuted}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <!-- ===== ToolBar 样式 ===== -->
