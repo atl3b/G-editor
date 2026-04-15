@@ -26,6 +26,10 @@ public sealed class MainWindowViewModel : ViewModelBase
     private DocumentTabViewModel? _activeTab;
     private EditorViewModel? _activeEditor;
     private SearchPanelViewModel? _searchPanel;
+
+    // 标签页 ViewModel 缓存，避免切换时重复创建
+    private readonly Dictionary<DocumentTabViewModel, EditorViewModel> _editorCache = new();
+    private readonly Dictionary<DocumentTabViewModel, SearchPanelViewModel> _searchPanelCache = new();
     private string _windowTitle = "G-editor";
     private bool _isLineNumberVisible = true;
 
@@ -74,9 +78,23 @@ public sealed class MainWindowViewModel : ViewModelBase
                 {
                     _activeTab.IsActive = true;
                     _documentManager.SetActive(_activeTab.Document);
-                    ActiveEditor = new EditorViewModel(_activeTab.Document, _syntaxRegistry);
-                    // 创建或更新搜索面板
-                    SearchPanel = new SearchPanelViewModel(_searchService, _activeTab.Document);
+
+                    // 复用或创建 EditorViewModel
+                    if (!_editorCache.TryGetValue(_activeTab, out var editor))
+                    {
+                        editor = new EditorViewModel(_activeTab.Document, _syntaxRegistry);
+                        _editorCache[_activeTab] = editor;
+                    }
+                    ActiveEditor = editor;
+
+                    // 复用或创建 SearchPanelViewModel
+                    if (!_searchPanelCache.TryGetValue(_activeTab, out var searchP))
+                    {
+                        searchP = new SearchPanelViewModel(_searchService, _activeTab.Document);
+                        _searchPanelCache[_activeTab] = searchP;
+                    }
+                    SearchPanel = searchP;
+
                     UpdateWindowTitle();
                     UpdateStatusBar();
                 }
@@ -185,9 +203,9 @@ public sealed class MainWindowViewModel : ViewModelBase
         // 文件命令
         NewCommand = new RelayCommand(NewDocument);
         OpenCommand = new RelayCommand(async () => await OpenDocumentAsync());
-        SaveCommand = new RelayCommand(SaveDocument, () => ActiveTab != null);
+        SaveCommand = new RelayCommand(async () => await SaveDocumentAsync(), () => ActiveTab != null);
         SaveAsCommand = new RelayCommand(async () => await SaveDocumentAsAsync(), () => ActiveTab != null);
-        CloseCommand = new RelayCommand(CloseActiveDocument, () => ActiveTab != null);
+        CloseCommand = new RelayCommand(async () => await CloseActiveDocumentAsync(), () => ActiveTab != null);
         ExitCommand = new RelayCommand(ExitApplication);
 
         // 编辑命令
@@ -205,7 +223,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         FindPreviousCommand = new RelayCommand(FindPrevious, () => SearchPanel?.IsVisible == true);
 
         // 编码切换命令
-        ReopenWithEncodingCommand = new RelayCommand<string>(ReopenWithEncoding);
+        ReopenWithEncodingCommand = new RelayCommand<string>(async name => await ReopenWithEncodingAsync(name));
         SaveWithEncodingCommand = new RelayCommand<string>(SaveWithEncoding);
 
         // 换行符切换命令
@@ -224,7 +242,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         GoToLineCommand = new RelayCommand(GoToLine, () => ActiveEditor != null);
 
         // 标签关闭命令（带参数）
-        CloseTabCommand = new RelayCommand<DocumentTabViewModel>(CloseTab);
+        CloseTabCommand = new RelayCommand<DocumentTabViewModel>(async tab => await CloseTabAsync(tab));
 
         // 最近文件命令
         OpenRecentFileCommand = new RelayCommand<string>(OpenRecentFile);
@@ -273,7 +291,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         }
     }
 
-    private void SaveDocument()
+    private async Task SaveDocumentAsync()
     {
         if (ActiveTab == null) return;
 
@@ -281,7 +299,7 @@ public sealed class MainWindowViewModel : ViewModelBase
 
         if (document.IsNew)
         {
-            SaveDocumentAsAsync().Wait();
+            await SaveDocumentAsAsync();
         }
         else
         {
@@ -289,8 +307,8 @@ public sealed class MainWindowViewModel : ViewModelBase
             {
                 _fileService.Save(document);
                 document.MarkAsSaved();
-                ActiveTab.RaisePropertyChanged(nameof(DocumentTabViewModel.Title));
-                ActiveTab.RaisePropertyChanged(nameof(DocumentTabViewModel.IsDirty));
+                ActiveTab.NotifyPropertyChanged(nameof(DocumentTabViewModel.Title));
+                ActiveTab.NotifyPropertyChanged(nameof(DocumentTabViewModel.IsDirty));
                 UpdateWindowTitle();
                 StatusBar.Status = "已保存";
             }
@@ -313,8 +331,8 @@ public sealed class MainWindowViewModel : ViewModelBase
         {
             _fileService.SaveAs(ActiveTab.Document, filePath);
             ActiveTab.Document.MarkAsSaved();
-            ActiveTab.RaisePropertyChanged(nameof(DocumentTabViewModel.Title));
-            ActiveTab.RaisePropertyChanged(nameof(DocumentTabViewModel.IsDirty));
+            ActiveTab.NotifyPropertyChanged(nameof(DocumentTabViewModel.Title));
+            ActiveTab.NotifyPropertyChanged(nameof(DocumentTabViewModel.IsDirty));
             UpdateWindowTitle();
             StatusBar.Status = "已保存";
         }
@@ -325,13 +343,13 @@ public sealed class MainWindowViewModel : ViewModelBase
         return Task.CompletedTask;
     }
 
-    private void CloseActiveDocument()
+    private async Task CloseActiveDocumentAsync()
     {
         if (ActiveTab == null) return;
-        CloseTab(ActiveTab);
+        await CloseTabAsync(ActiveTab);
     }
 
-    private void CloseTab(DocumentTabViewModel? tab)
+    private async Task CloseTabAsync(DocumentTabViewModel? tab)
     {
         if (tab == null) return;
 
@@ -351,15 +369,23 @@ public sealed class MainWindowViewModel : ViewModelBase
             if (result == MessageBoxResult.Yes)
             {
                 if (document.IsNew)
-                    SaveDocumentAsAsync().Wait();
+                    await SaveDocumentAsAsync();
                 else
-                    SaveDocument();
+                    await SaveDocumentAsync();
             }
         }
 
         var index = Documents.IndexOf(tab);
         Documents.Remove(tab);
         tab.Cleanup();
+
+        // 清理缓存
+        if (_editorCache.TryGetValue(tab, out var cachedEditor))
+        {
+            cachedEditor.Cleanup();
+            _editorCache.Remove(tab);
+        }
+        _searchPanelCache.Remove(tab);
 
         // 切换到相邻标签
         if (Documents.Count > 0)
@@ -459,7 +485,7 @@ public sealed class MainWindowViewModel : ViewModelBase
 
     #region 编码操作
 
-    private void ReopenWithEncoding(string? encodingName)
+    private async Task ReopenWithEncodingAsync(string? encodingName)
     {
         if (ActiveTab == null || string.IsNullOrEmpty(encodingName)) return;
 
@@ -472,7 +498,7 @@ public sealed class MainWindowViewModel : ViewModelBase
                 MessageBoxImage.Question);
 
             if (result == MessageBoxResult.Cancel) return;
-            if (result == MessageBoxResult.Yes) SaveDocument();
+            if (result == MessageBoxResult.Yes) await SaveDocumentAsync();
         }
 
         var encoding = GetEncodingByName(encodingName);
@@ -530,16 +556,24 @@ public sealed class MainWindowViewModel : ViewModelBase
             }
             else
             {
-                // 保存为指定编码
+                // 保存为指定编码 — 先写入临时文件，再原子替换
                 var tempPath = ActiveTab.Document.FilePath + ".tmp";
-                _fileService.SaveAs(ActiveTab.Document, tempPath, encoding);
-                File.Delete(ActiveTab.Document.FilePath);
-                File.Move(tempPath, ActiveTab.Document.FilePath);
-                ActiveTab.Document.MarkAsSaved();
+                try
+                {
+                    _fileService.SaveAs(ActiveTab.Document, tempPath, encoding);
+                    File.Copy(tempPath, ActiveTab.Document.FilePath, overwrite: true);
+                    ActiveTab.Document.MarkAsSaved();
+                }
+                finally
+                {
+                    // 无论成功失败都清理临时文件
+                    if (File.Exists(tempPath))
+                        File.Delete(tempPath);
+                }
             }
 
-            ActiveTab.RaisePropertyChanged(nameof(DocumentTabViewModel.Title));
-            ActiveTab.RaisePropertyChanged(nameof(DocumentTabViewModel.IsDirty));
+            ActiveTab.NotifyPropertyChanged(nameof(DocumentTabViewModel.Title));
+            ActiveTab.NotifyPropertyChanged(nameof(DocumentTabViewModel.IsDirty));
             UpdateStatusBar();
             StatusBar.Status = $"已保存为 {encodingName}";
         }
@@ -798,11 +832,5 @@ public sealed class MainWindowViewModel : ViewModelBase
     #endregion
 }
 
-// 扩展方法用于 DocumentTabViewModel
-public static class DocumentTabViewModelExtensions
-{
-    public static void RaisePropertyChanged(this DocumentTabViewModel vm, string propertyName)
-    {
-        vm.GetType().BaseType?.GetMethod("OnPropertyChanged")?.Invoke(vm, new object[] { propertyName });
-    }
-}
+
+

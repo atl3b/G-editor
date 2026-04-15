@@ -45,4 +45,12 @@ public sealed class DocumentTabViewModel : ViewModelBase
     {
         _document.Changed -= OnDocumentChanged;
     }
+
+    /// <summary>
+    /// 公开属性变更通知（供外部触发特定属性刷新）
+    /// </summary>
+    public void NotifyPropertyChanged(string propertyName)
+    {
+        OnPropertyChanged(propertyName);
+    }
 }

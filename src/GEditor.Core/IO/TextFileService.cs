@@ -25,6 +25,8 @@ public sealed class TextFileService : ITextFileService
 
         // Remove BOM for decoding
         int preambleLength = encodingInfo.Encoding.GetPreamble().Length;
+        if (preambleLength > bytes.Length)
+            preambleLength = 0; // 防止越界：文件长度不足 BOM 长度时跳过 BOM 移除
         string content = encodingInfo.Encoding.GetString(bytes, preambleLength, bytes.Length - preambleLength);
 
         var lineEnding = _lineEndingDetector.Detect(content);

@@ -838,23 +838,27 @@ public class SyntaxHighlightingTextBox : RichTextBox
     /// <summary>
     /// 根据 Token 类型返回对应的颜色画刷
     /// 采用 VS Code Dark+ 配色方案
+    /// 使用静态只读缓存避免每次调用都创建新实例造成 GC 压力
     /// </summary>
+    private static readonly Dictionary<TokenKind, Brush> s_tokenBrushCache = new()
+    {
+        [TokenKind.Keyword] = new SolidColorBrush(Color.FromRgb(86, 156, 214)),
+        [TokenKind.String] = new SolidColorBrush(Color.FromRgb(206, 145, 120)),
+        [TokenKind.Number] = new SolidColorBrush(Color.FromRgb(181, 206, 168)),
+        [TokenKind.Comment] = new SolidColorBrush(Color.FromRgb(106, 153, 85)),
+        [TokenKind.Preprocessor] = new SolidColorBrush(Color.FromRgb(155, 155, 155)),
+        [TokenKind.Type] = new SolidColorBrush(Color.FromRgb(78, 201, 176)),
+        [TokenKind.Attribute] = new SolidColorBrush(Color.FromRgb(197, 134, 192)),
+        [TokenKind.Operator] = new SolidColorBrush(Color.FromRgb(212, 212, 212)),
+        [TokenKind.Delimiter] = new SolidColorBrush(Color.FromRgb(212, 212, 212)),
+        [TokenKind.Identifier] = new SolidColorBrush(Color.FromRgb(230, 237, 243))
+    };
+
+    private static readonly Brush s_defaultBrush = new SolidColorBrush(Color.FromRgb(230, 237, 243));
+
     private Brush GetBrushForTokenKind(TokenKind kind)
     {
-        return kind switch
-        {
-            TokenKind.Keyword => new SolidColorBrush(Color.FromRgb(86, 156, 214)),       // Blue - C9DCFF
-            TokenKind.String => new SolidColorBrush(Color.FromRgb(206, 145, 120)),       // Orange - CE9178
-            TokenKind.Number => new SolidColorBrush(Color.FromRgb(181, 206, 168)),       // Green - B5CEA8
-            TokenKind.Comment => new SolidColorBrush(Color.FromRgb(106, 153, 85)),       // Green-Gray - 6A9955
-            TokenKind.Preprocessor => new SolidColorBrush(Color.FromRgb(155, 155, 155)), // Gray - 9B9B9B
-            TokenKind.Type => new SolidColorBrush(Color.FromRgb(78, 201, 176)),          // Cyan - 4EC9B0
-            TokenKind.Attribute => new SolidColorBrush(Color.FromRgb(197, 134, 192)),    // Purple - C586C0
-            TokenKind.Operator => new SolidColorBrush(Color.FromRgb(212, 212, 212)),    // White - D4D4D4
-            TokenKind.Delimiter => new SolidColorBrush(Color.FromRgb(212, 212, 212)),   // White - D4D4D4
-            TokenKind.Identifier => new SolidColorBrush(Color.FromRgb(230, 237, 243)),  // Light - E6EDF3
-            TokenKind.PlainText or TokenKind.None or _ => new SolidColorBrush(Color.FromRgb(230, 237, 243)) // Default Light
-        };
+        return s_tokenBrushCache.TryGetValue(kind, out var brush) ? brush : s_defaultBrush;
     }
 
     /// <summary>

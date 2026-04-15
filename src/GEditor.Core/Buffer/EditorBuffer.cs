@@ -49,8 +49,26 @@ public sealed class EditorBuffer
     /// <summary>获取指定范围的文本</summary>
     public string GetRange(int startLine, int startCol, int endLine, int endCol)
     {
+        if (startLine < 0 || startLine >= _lines.Count)
+            throw new ArgumentOutOfRangeException(nameof(startLine));
+        if (endLine < 0 || endLine >= _lines.Count)
+            throw new ArgumentOutOfRangeException(nameof(endLine));
+        if (startCol < 0)
+            throw new ArgumentOutOfRangeException(nameof(startCol));
+        if (endCol < 0)
+            throw new ArgumentOutOfRangeException(nameof(endCol));
+
         if (startLine == endLine)
+        {
+            if (startCol > _lines[startLine].Length || endCol > _lines[startLine].Length)
+                throw new ArgumentOutOfRangeException(null, "列超出行长度");
             return _lines[startLine].Substring(startCol, endCol - startCol);
+        }
+
+        if (startCol > _lines[startLine].Length)
+            startCol = _lines[startLine].Length;
+        if (endCol > _lines[endLine].Length)
+            endCol = _lines[endLine].Length;
 
         var parts = new List<string> { _lines[startLine][startCol..] };
         for (int i = startLine + 1; i < endLine; i++)

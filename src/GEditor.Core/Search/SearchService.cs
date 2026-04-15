@@ -41,22 +41,32 @@ public sealed class SearchService : ISearchService
 
         var regex = BuildRegex(query);
         int totalLines = buffer.LineCount;
-        int totalChars = 0;
 
-        // Calculate total chars for wrap detection
-        for (int i = 0; i < totalLines; i++)
-            totalChars += buffer[i].Length;
+        // Phase 1: 从当前位置搜索到文档末尾
+        var result = SearchFromPosition(buffer, regex, fromLine, fromColumn, totalLines - 1);
+        if (result != null)
+            return result;
 
-        // Search from position
-        for (int offset = 0; offset < totalChars + 1; offset++)
+        // Phase 2: wrap-around — 从文档开头搜到起始位置之前
+        if (fromLine > 0)
+            return SearchFromPosition(buffer, regex, 0, 0, fromLine - 1);
+
+        return null;
+    }
+
+    /// <summary>
+    /// 在指定行范围内搜索下一个匹配项
+    /// </summary>
+    private static SearchMatch? SearchFromPosition(EditorBuffer buffer, Regex regex, int startLine, int startCol, int endLine)
+    {
+        for (int line = startLine; line <= endLine; line++)
         {
-            int line = (fromLine + offset) % totalLines;
-            int startCol = (line == fromLine && offset == 0) ? fromColumn : 0;
-
+            int col = (line == startLine) ? startCol : 0;
             var lineText = buffer[line];
+
             foreach (Match m in regex.Matches(lineText))
             {
-                if (m.Index >= startCol)
+                if (m.Index >= col)
                 {
                     return new SearchMatch
                     {
@@ -68,12 +78,7 @@ public sealed class SearchService : ISearchService
                     };
                 }
             }
-
-            // If we wrapped around back to start, stop
-            if (line == fromLine - 1 || (fromLine == 0 && line == totalLines - 1 && offset > 0))
-                break;
         }
-
         return null;
     }
 

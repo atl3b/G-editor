@@ -282,32 +282,26 @@ public sealed class EditorViewModel : ViewModelBase
             {
                 // 在列选区位置逐行粘贴
                 var normalized = _columnSelection.Normalized();
-                var positions = new List<(int line, int column)>();
+                var pasteCommands = new List<IEditCommand>();
 
                 for (int i = 0; i < lines.Length && (normalized.StartLine + i) <= normalized.EndLine; i++)
                 {
                     int line = normalized.StartLine + i;
-                    int col = i == 0 ? normalized.StartColumn : normalized.StartColumn;
-                    positions.Add((line, col));
-                }
+                    int col = normalized.StartColumn;
 
-                // 逐行插入对应的粘贴文本行
-                // 从后往前插入以避免行号偏移
-                var sortedPositions = positions.OrderByDescending(p => p.line).ToList();
-                for (int i = 0; i < sortedPositions.Count; i++)
-                {
-                    int originalIndex = positions.Count - 1 - i; // 对应原始顺序的行索引
-                    var (line, col) = sortedPositions[i];
-                    var lineText = originalIndex < lines.Length ? lines[originalIndex] : lines[0];
-                    
                     if (line >= 0 && line < Buffer.LineCount)
                     {
                         col = Math.Max(0, Math.Min(col, Buffer.GetLineLength(line)));
-                        Buffer.Insert(line, col, lineText);
+                        var lineText = lines[i];
+                        pasteCommands.Add(new InsertTextCommand(line, col, lineText));
                     }
                 }
 
-                Document.UndoRedoManager.Clear(); // 简化：清除撤销历史
+                if (pasteCommands.Count > 0)
+                {
+                    var compositeCmd = new CompositeEditCommand("列模式粘贴", pasteCommands);
+                    Document.UndoRedoManager.Execute(compositeCmd, Buffer);
+                }
             }
             else
             {
