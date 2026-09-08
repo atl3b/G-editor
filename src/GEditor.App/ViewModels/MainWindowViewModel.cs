@@ -187,6 +187,10 @@ public sealed class MainWindowViewModel : ViewModelBase
     // 跳转到行号命令
     public ICommand GoToLineCommand { get; private set; } = null!;
 
+    // Tab/空格转换命令
+    public ICommand TabsToSpacesCommand { get; private set; } = null!;
+    public ICommand SpacesToTabsCommand { get; private set; } = null!;
+
     // 标签关闭命令（带参数）
     public ICommand CloseTabCommand { get; private set; } = null!;
 
@@ -240,6 +244,10 @@ public sealed class MainWindowViewModel : ViewModelBase
 
         // 跳转到行号命令
         GoToLineCommand = new RelayCommand(GoToLine, () => ActiveEditor != null);
+
+        // Tab/空格转换命令
+        TabsToSpacesCommand = new RelayCommand(ConvertTabsToSpaces, () => ActiveTab != null);
+        SpacesToTabsCommand = new RelayCommand(ConvertSpacesToTabs, () => ActiveTab != null);
 
         // 标签关闭命令（带参数）
         CloseTabCommand = new RelayCommand<DocumentTabViewModel>(async tab => await CloseTabAsync(tab));
@@ -669,6 +677,46 @@ public sealed class MainWindowViewModel : ViewModelBase
         if (ActiveEditor == null) return;
         ActiveEditor.IsWordWrapEnabled = !ActiveEditor.IsWordWrapEnabled;
         StatusBar.Status = ActiveEditor.IsWordWrapEnabled ? "自动换行已开启" : "自动换行已关闭";
+    }
+
+    #endregion
+
+    #region Tab/空格转换操作
+
+    private void ConvertTabsToSpaces()
+    {
+        if (ActiveTab == null || ActiveEditor == null) return;
+
+        var text = ActiveEditor.Text;
+        var result = GEditor.Core.Editing.TabSpaceConverter.ConvertTabsToSpaces(text);
+
+        if (result.ReplacedCount > 0)
+        {
+            ActiveEditor.Text = result.ConvertedText;
+            StatusBar.Status = result.Message;
+        }
+        else
+        {
+            StatusBar.Status = result.Message;
+        }
+    }
+
+    private void ConvertSpacesToTabs()
+    {
+        if (ActiveTab == null || ActiveEditor == null) return;
+
+        var text = ActiveEditor.Text;
+        var result = GEditor.Core.Editing.TabSpaceConverter.ConvertSpacesToTabs(text);
+
+        if (result.ReplacedCount > 0)
+        {
+            ActiveEditor.Text = result.ConvertedText;
+            StatusBar.Status = result.Message;
+        }
+        else
+        {
+            StatusBar.Status = result.Message;
+        }
     }
 
     #endregion

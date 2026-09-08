@@ -1,5 +1,7 @@
+using GEditor.Core.Editing;
 using GEditor.Core.Selection;
 using GEditor.Syntax;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
@@ -89,6 +91,26 @@ public class SyntaxHighlightingTextBox : RichTextBox
             typeof(SyntaxHighlightingTextBox),
             new PropertyMetadata(false, OnIsWordWrapEnabledChanged));
 
+    /// <summary>
+    /// 当前括号匹配结果（用于高亮显示）
+    /// </summary>
+    public static readonly DependencyProperty BracketMatchProperty =
+        DependencyProperty.Register(
+            nameof(BracketMatch),
+            typeof(BracketMatcher.BracketMatch?),
+            typeof(SyntaxHighlightingTextBox),
+            new PropertyMetadata(null));
+
+    /// <summary>
+    /// 是否启用多光标模式
+    /// </summary>
+    public static readonly DependencyProperty IsMultiCursorModeProperty =
+        DependencyProperty.Register(
+            nameof(IsMultiCursorMode),
+            typeof(bool),
+            typeof(SyntaxHighlightingTextBox),
+            new PropertyMetadata(false, OnIsMultiCursorModeChanged));
+
     #endregion
 
     #region 属性
@@ -134,6 +156,30 @@ public class SyntaxHighlightingTextBox : RichTextBox
         get => (bool)GetValue(IsWordWrapEnabledProperty);
         set => SetValue(IsWordWrapEnabledProperty, value);
     }
+
+    /// <summary>
+    /// 当前括号匹配结果
+    /// </summary>
+    public BracketMatcher.BracketMatch? BracketMatch
+    {
+        get => (BracketMatcher.BracketMatch?)GetValue(BracketMatchProperty);
+        set => SetValue(BracketMatchProperty, value);
+    }
+
+    /// <summary>
+    /// 是否启用多光标模式
+    /// </summary>
+    public bool IsMultiCursorMode
+    {
+        get => (bool)GetValue(IsMultiCursorModeProperty);
+        set => SetValue(IsMultiCursorModeProperty, value);
+    }
+
+    #endregion
+
+    #region 多光标字段
+
+    private readonly MultiCursorManager _multiCursorManager = new();
 
     #endregion
 
@@ -183,6 +229,7 @@ public class SyntaxHighlightingTextBox : RichTextBox
 
         TextChanged += OnInternalTextChanged;
         PreviewKeyDown += OnPreviewKeyDown;
+        SelectionChanged += OnSelectionChanged; // 括号匹配更新
     }
 
     #endregion
@@ -280,6 +327,41 @@ public class SyntaxHighlightingTextBox : RichTextBox
         }
     }
 
+    /// <summary>
+    /// 光标/选择变化时更新括号匹配高亮
+    /// </summary>
+    private void OnSelectionChanged(object sender, RoutedEventArgs e)
+    {
+        if (_isUpdating || DocumentLines == null) return;
+        
+        // 延迟更新，避免频繁刷新
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (!_isUpdating)
+            {
+                var line = GetCaretLine();
+                var col = GetCaretColumn();
+                UpdateBracketMatch(line, col - 1);
+                
+                // 仅重新渲染括号高亮（不重建整个文档）
+                RefreshBracketHighlight();
+            }
+        });
+    }
+
+    /// <summary>
+    /// 刷新括号高亮显示（轻量级更新）
+    /// </summary>
+    private void RefreshBracketHighlight()
+    {
+        // 简单实现：触发完整高亮刷新
+        // 后续可优化为仅更新受影响的 Run
+        if (SyntaxHighlighter != null && DocumentLines != null)
+        {
+            UpdateHighlighting();
+        }
+    }
+
     #endregion
 
     #region 键盘事件处理
@@ -293,6 +375,29 @@ public class SyntaxHighlightingTextBox : RichTextBox
             ColumnModeExited?.Invoke();
             e.Handled = true;
             return;
+        }
+
+        // ESC 退出多光标模式
+        if (e.Key == Key.Escape && IsMultiCursorMode)
+        {
+            ExitMultiCursorMode();
+            e.Handled = true;
+            return;
+        }
+
+        // 回车键自动缩进
+        if (e.Key == Key.Return && !Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
+        {
+            if (DocumentLines != null && DocumentLines.Count > 0)
+            {
+                int line = GetCaretLine();
+                int col = GetCaretColumn() - 1; // 转换为 0-based
+                
+                var indentText = AutoIndenter.GetAutoIndentText(DocumentLines, line, col);
+                CaretPosition.InsertTextInRun(indentText);
+                e.Handled = true;
+                return;
+            }
         }
 
         // 处理 Tab 键
@@ -800,21 +905,31 @@ public class SyntaxHighlightingTextBox : RichTextBox
             var caretLine = GetCaretLine();
             var caretColumn = GetCaretColumn();
             
+            // 更新括号匹配状态
+            UpdateBracketMatch(caretLine, caretColumn - 1); // 转换为 0-based
+            
             // 清空并重建文档
             Document.Blocks.Clear();
             
+            int lineIndex = 0;
             foreach (var lineTokens in highlightResult.LineTokens)
             {
                 var paragraph = new Paragraph();
                 
                 // 为每个 token 创建带颜色的 Run
+                int charIndex = 0;
                 foreach (var token in lineTokens)
                 {
                     var run = new Run(token.Text)
                     {
                         Foreground = GetBrushForTokenKind(token.Kind)
                     };
+                    
+                    // 检查是否需要应用括号高亮
+                    ApplyBracketHighlight(run, lineIndex, charIndex, token.Text.Length);
+                    
                     paragraph.Inlines.Add(run);
+                    charIndex += token.Text.Length;
                 }
                 
                 // 空行添加占位 Run
@@ -824,6 +939,7 @@ public class SyntaxHighlightingTextBox : RichTextBox
                 }
                 
                 Document.Blocks.Add(paragraph);
+                lineIndex++;
             }
             
             // 恢复光标位置
@@ -834,6 +950,128 @@ public class SyntaxHighlightingTextBox : RichTextBox
             _isUpdating = false;
         }
     }
+
+    #region 多光标功能
+
+    /// <summary>
+    /// 多光标模式变化回调
+    /// </summary>
+    private static void OnIsMultiCursorModeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is SyntaxHighlightingTextBox textBox)
+        {
+            if (!(bool)e.NewValue)
+            {
+                textBox._multiCursorManager.ClearSecondaryCursors();
+            }
+        }
+    }
+
+    /// <summary>
+    /// 退出多光标模式
+    /// </summary>
+    public void ExitMultiCursorMode()
+    {
+        _multiCursorManager.ClearSecondaryCursors();
+        IsMultiCursorMode = false;
+        MultiCursorModeExited?.Invoke();
+    }
+
+    /// <summary>
+    /// 在指定位置添加多光标（Ctrl+点击调用）
+    /// </summary>
+    public void AddCursorAtPosition(int line, int column)
+    {
+        _multiCursorManager.AddCursor(line, column);
+        IsMultiCursorMode = _multiCursorManager.IsActive;
+        
+        if (IsMultiCursorMode)
+        {
+            MultiCursorChanged?.Invoke(_multiCursorManager.Cursors);
+        }
+    }
+
+    /// <summary>
+    /// 获取所有辅助光标位置（不包括主光标）
+    /// </summary>
+    public IReadOnlyList<CursorPosition> GetSecondaryCursors()
+    {
+        var cursors = _multiCursorManager.Cursors;
+        return cursors.Count > 1 ? cursors.Skip(1).ToList() : Array.Empty<CursorPosition>();
+    }
+
+    /// <summary>
+    /// 多光标模式退出事件
+    /// </summary>
+    public event Action? MultiCursorModeExited;
+
+    /// <summary>
+    /// 多光标变化事件
+    /// </summary>
+    public event Action<IReadOnlyList<CursorPosition>>? MultiCursorChanged;
+
+    #endregion
+
+    #region 括号匹配高亮
+
+    /// <summary>
+    /// 括号高亮画刷 - 匹配成功时使用醒目的青色
+    /// </summary>
+    private static readonly Brush s_bracketMatchBrush = new SolidColorBrush(Color.FromRgb(0, 212, 170));
+    
+    /// <summary>
+    /// 括号高亮画刷 - 未匹配时使用红色警告
+    /// </summary>
+    private static readonly Brush s_bracketMismatchBrush = new SolidColorBrush(Color.FromRgb(255, 100, 100));
+
+    /// <summary>
+    /// 更新当前括号匹配状态
+    /// </summary>
+    private void UpdateBracketMatch(int caretLine, int caretCol)
+    {
+        if (DocumentLines == null || DocumentLines.Count == 0)
+        {
+            BracketMatch = null;
+            return;
+        }
+
+        var match = BracketMatcher.FindMatch(DocumentLines, caretLine, caretCol);
+        BracketMatch = match;
+    }
+
+    /// <summary>
+    /// 对 Run 应用括号高亮效果
+    /// </summary>
+    private void ApplyBracketHighlight(Run run, int lineIndex, int charIndex, int length)
+    {
+        var match = BracketMatch;
+        if (match == null) return;
+
+        // 检查这个 Run 是否包含当前括号位置
+        bool isCurrentBracket = (lineIndex == match.Value.Line && 
+                                 charIndex <= match.Value.Column && 
+                                 charIndex + length > match.Value.Column);
+        
+        // 检查这个 Run 是否包含匹配括号位置
+        bool isMatchBracket = (match.Value.IsValid && 
+                               lineIndex == match.Value.MatchLine && 
+                               charIndex <= match.Value.MatchColumn && 
+                               charIndex + length > match.Value.MatchColumn);
+
+        if (isCurrentBracket || isMatchBracket)
+        {
+            run.FontWeight = FontWeights.Bold;
+            run.Background = match.Value.IsValid ? s_bracketMatchBrush : s_bracketMismatchBrush;
+            
+            // 未匹配的括号使用红色前景
+            if (!match.Value.IsValid && isCurrentBracket)
+            {
+                run.Foreground = s_bracketMismatchBrush;
+            }
+        }
+    }
+
+    #endregion
 
     /// <summary>
     /// 根据 Token 类型返回对应的颜色画刷

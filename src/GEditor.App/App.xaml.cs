@@ -37,6 +37,13 @@ public partial class App : Application
             registry.Register(new CSharpSyntaxHighlighter());
             registry.Register(new JsonSyntaxHighlighter());
             registry.Register(new XmlSyntaxHighlighter());
+            // 新增语言支持
+            registry.Register(new PythonSyntaxHighlighter());
+            registry.Register(new JavaScriptSyntaxHighlighter());
+            registry.Register(new HtmlSyntaxHighlighter());
+            registry.Register(new CssSyntaxHighlighter());
+            registry.Register(new SqlSyntaxHighlighter());
+            registry.Register(new MarkdownSyntaxHighlighter());
             return registry;
         });
 
